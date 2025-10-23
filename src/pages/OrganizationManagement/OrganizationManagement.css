@@ -1,0 +1,50 @@
+/* 组织管理页面专用样式 */
+
+/* 地址自动完成组件样式调整 */
+.address-autocomplete .ant-input {
+  height: 32px;
+}
+
+/* 表格中的电话号码显示 */
+.ant-table-tbody .ant-table-cell {
+  word-break: break-all;
+}
+
+/* 电话号码格式化显示 */
+.phone-display {
+  font-family: 'Monaco', 'Courier New', monospace;
+  color: rgba(0, 0, 0, 0.88);
+  letter-spacing: 0.5px;
+}
+
+/* 模态框中的表单样式 */
+.ant-modal .ant-form-item-label > label {
+  font-weight: 500;
+}
+
+.ant-modal .ant-form-item {
+  margin-bottom: 16px;
+}
+
+/* 地址选择确认框样式 */
+.address-confirmation {
+  margin-top: 8px;
+  padding: 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #52c41a;
+}
+
+.address-confirmation .address-text {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.address-confirmation .coordinates-text {
+  color: #8c8c8c;
+  font-size: 11px;
+}
+
+

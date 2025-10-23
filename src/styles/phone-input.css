@@ -1,0 +1,96 @@
+/* 国际电话号码输入组件样式 */
+.PhoneInput {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  transition: all 0.3s ease !important;
+  background: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Hover 和 focus 样式由外层包装器处理 */
+
+.PhoneInputCountry {
+  padding: 0 8px !important;
+  border-right: 1px solid #d9d9d9 !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+.PhoneInputCountryIcon {
+  width: 20px !important;
+  height: 15px !important;
+  border-radius: 2px !important;
+}
+
+.PhoneInputInput {
+  border: none !important;
+  outline: none !important;
+  padding: 0 11px !important;
+  font-size: 14px !important;
+  height: 100% !important;
+  line-height: normal !important;
+  background: #ffffff !important;
+  flex: 1 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.PhoneInputInput::placeholder {
+  color: #bfbfbf !important;
+}
+
+/* 错误状态 */
+.PhoneInput--error {
+  border-color: #ff4d4f !important;
+}
+
+.PhoneInput--error:focus-within {
+  border-color: #ff4d4f !important;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2) !important;
+}
+
+/* 禁用状态 */
+.PhoneInput--disabled {
+  background-color: #f5f5f5 !important;
+  border-color: #d9d9d9 !important;
+  cursor: not-allowed !important;
+}
+
+.PhoneInput--disabled .PhoneInputInput {
+  background-color: transparent !important;
+  color: rgba(0, 0, 0, 0.25) !important;
+  cursor: not-allowed !important;
+}
+
+/* 额外的重置样式，确保边框完整和背景颜色 */
+.PhoneInput * {
+  box-sizing: border-box !important;
+  background-color: #ffffff !important;
+}
+
+/* 包装器样式 */
+.phone-input-wrapper {
+  background-color: #ffffff !important;
+}
+
+.phone-input-wrapper * {
+  background-color: #ffffff !important;
+}
+
+.PhoneInput .PhoneInputCountrySelect {
+  border: none !important;
+  background: #ffffff !important;
+  outline: none !important;
+}
+
+.PhoneInput .PhoneInputCountrySelectArrow {
+  border-color: #999 !important;
+}

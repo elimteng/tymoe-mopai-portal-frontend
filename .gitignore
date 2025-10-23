@@ -1,0 +1,10 @@
+node_modules/
+dist/
+*.local
+.env*
+.env.*
+.DS_Store
+coverage/
+# env files in this repo naming
+env.production
+env.develop
