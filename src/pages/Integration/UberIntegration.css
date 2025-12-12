@@ -1,0 +1,144 @@
+.uber-integration-page {
+  padding: 20px;
+}
+
+.uber-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  flex-direction: column;
+}
+
+.uber-empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.uber-connected-container {
+  padding: 0;
+}
+
+/* 集成状态信息条 - 紧凑设计 */
+.integration-status-bar {
+  background: linear-gradient(135deg, #f6f8fb 0%, #f0f5fa 100%);
+  border: 1px solid #e6f0ff;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.integration-status-bar:hover {
+  background: linear-gradient(135deg, #f0f5fa 0%, #e6f0ff 100%);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.08);
+}
+
+.code-text-inline {
+  font-family: 'Monaco', 'Courier New', monospace;
+  background-color: rgba(24, 144, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: #1890ff;
+  word-break: break-all;
+}
+
+.code-text {
+  font-family: 'Monaco', 'Courier New', monospace;
+  background-color: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-item label {
+  font-weight: 500;
+  color: #333;
+  min-width: 120px;
+}
+
+.status-item span {
+  color: #666;
+  text-align: right;
+  flex: 1;
+}
+
+/* 紧凑操作栏 - 已移入集成状态栏 */
+.uber-actions {
+  margin-top: 20px;
+}
+
+.success-message,
+.error-message {
+  animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .integration-status-bar {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .integration-status-bar .ant-row {
+    flex-direction: column;
+    gap: 12px !important;
+  }
+
+  .integration-status-bar .ant-col {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .status-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px 0;
+  }
+
+  .status-item label {
+    margin-bottom: 6px;
+    min-width: auto;
+  }
+
+  .status-item span {
+    text-align: left;
+  }
+
+  /* 移动端按钮紧凑排列 */
+  .integration-status-bar .ant-space {
+    flex-wrap: wrap;
+  }
+
+  .integration-status-bar .ant-space-item {
+    margin-right: 0 !important;
+    margin-bottom: 8px !important;
+  }
+}

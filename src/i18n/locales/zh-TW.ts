@@ -1,6 +1,24 @@
 const zhTW = {
   translation: {
-    app: { title: 'Portal 管理後台' },
+    app: { title: 'Tymoe 管理平台' },
+    common: {
+      back: '返回',
+      confirm: '確定',
+      cancel: '取消',
+      save: '保存',
+      delete: '刪除',
+      edit: '編輯',
+      create: '創建',
+      search: '搜索',
+      reset: '重置',
+      submit: '提交',
+      success: '操作成功',
+      error: '操作失敗',
+      loading: '加載中...',
+      noData: '暫無數據',
+      yes: '是',
+      no: '否'
+    },
     nav: {
       dashboard: '儀表板',
       menuCenter: '選單中心',
@@ -9,7 +27,8 @@ const zhTW = {
       devices: '設備管理',
       receiptTemplate: '小票模板',
       features: '特色功能',
-      recipeGuide: '製作指引'
+      recipeGuide: '製作指引',
+      orderConfig: '訂單配置'
     },
     organization: {
       title: '組織管理',
@@ -788,7 +807,8 @@ const zhTW = {
         // 操作
         enable: '啟用',
         disable: '禁用',
-        
+        testPrint: '測試打印',
+
         // 消息
         createSuccess: '模板創建成功',
         updateSuccess: '模板更新成功',
@@ -804,7 +824,10 @@ const zhTW = {
         toggleFailed: '切換狀態失敗',
         loadFailed: '加載模板列表失敗',
         formValidationError: '表單驗證失敗，請檢查輸入',
-        
+        generatingPrint: '正在生成打印文件...',
+        printGenerated: '打印文件已生成,開始下載',
+        printFailed: '生成打印文件失敗',
+
         // 確認
         deleteConfirm: '確定要刪除這個模板嗎？',
         deleteWarning: '此操作不可恢復',
@@ -907,6 +930,27 @@ const zhTW = {
         moveDown: '下移',
         removeStep: '移除',
         
+        // 新步驟編輯器
+        instruction: 'Instruction',
+        instructionPlaceholder: '數量/操作/快捷鍵等',
+        instructionQuantity: '例如: 200 (ml)',
+        instructionKey: '例如: 2 (按鍵)',
+        containedSteps: '包含的步驟',
+        containedStepsEmpty: '未選擇包含的步驟，將只打印設備代碼',
+        stepContained: '已被包含',
+        equipmentStep: '設備',
+        recipePrintCodeTitle: 'Recipe打印代碼',
+        recipePrintCodeDesc: '此代碼將保存到數據庫，用於訂單打印',
+        recipePrintCodeEmpty: '(暫無步驟)',
+        printCodeRulesTitle: '打印代碼規則',
+        printCodeRule1: '每個步驟的代碼 = 步驟類型代碼 + instruction',
+        printCodeRule2: '例如：milk(mk) + 200 = mk200',
+        printCodeRule3: '設備步驟會用前後綴包含其他步驟',
+        printCodeRule4: '例如：攪拌機([]) 包含 mk200，按2鍵 = [mk200]2',
+        printCodeRule5: '被包含的步驟不會單獨打印',
+        printCodeRule6: '最終recipe打印代碼 = 所有未被包含的步驟代碼連接',
+        codePreview: '代碼',
+        
         // 屬性變體
         variantsConfig: '屬性變體',
         createVariant: '創建變體',
@@ -951,6 +995,7 @@ const zhTW = {
         categoryEquipment: '設備',
         categoryManual: '手工',
         categoryTiming: '計時',
+        categoryAction: '操作',
         icon: '圖標',
         iconPlaceholder: '圖標名稱',
         color: '顏色',
@@ -961,6 +1006,41 @@ const zhTW = {
         positionWrap: '包裹',
         positionPrefix: '前綴',
         positionSuffix: '後綴',
+        // StepTypeFormModalEnhanced 步驟類型表單
+        presetBracketSquare: '方括號 []',
+        presetBracketRound: '圓括號 ()',
+        presetBracketCurly: '花括號 {}',
+        presetBracketAngle: '尖括號 <>',
+        categoryLabel: '分類',
+        categoryRequired: '請選擇分類',
+        nameLabel: '名稱',
+        nameRequired: '請輸入名稱',
+        namePlaceholder: '例如: 牛奶、攪拌機、加熱',
+        codeLabel: '代碼',
+        codeRequired: '請輸入代碼',
+        codeTooltip: '用於打印的簡短代碼，在同一組織內必須唯一',
+        codePlaceholderIngredient: '例如: MK, BT, ICE',
+        codePlaceholderEquipment: '例如: *',
+        codePlaceholderAction: '例如: HEAT, SHAKE',
+        codeDuplicateError: '該代碼已被使用，請使用其他代碼',
+        loadingSuggestions: '正在獲取代碼建議...',
+        suggestionsLabel: '推薦代碼 (點擊選擇):',
+        containerAlert: '設備步驟可以包含其他步驟',
+        containerAlertDesc: '例如：攪拌機可以包含牛奶、茶等原料步驟',
+        containerSymbolLabel: '容器符號（可選）',
+        containerSymbolTip: '點擊選擇預設括號，或直接在代碼字段輸入自定義符號',
+        containerSelected: '已選擇：',
+        containerExample: '示例：',
+        containerCustomMode: '自定義符號模式',
+        containerCustomDesc: '在「代碼」字段中輸入的值將作為容器符號',
+        containerCustomExample: '示例：代碼輸入',
+        containerCustomExampleGenerated: '，生成',
+        containerCustomNote: '代碼會出現在包含步驟的前後',
+        descriptionOptional: '描述（可選）',
+        descriptionPlaceholder: '步驟的詳細說明',
+        operationFailed: '操作失敗',
+        updateSuccess: '更新成功',
+        createSuccess: '創建成功',
         fieldSchema: '字段架構',
         fieldSchemaPlaceholder: '輸入JSON架構',
         codeTemplate: '代碼模板',
@@ -1045,6 +1125,204 @@ const zhTW = {
         yes: '是',
         no: '否',
         oneClickCopyToAll: '一鍵複製到全部'
+      },
+      orderConfig: {
+        title: '訂單配置',
+        description: '為您的組織配置訂單渠道和相關設置',
+
+        // 訂單渠道管理模塊
+        channelManagementTitle: '渠道管理',
+        channelManagementDesc: '為您的組織管理訂單渠道，支持系統預設渠道和自定義渠道',
+
+        createSource: '創建訂單渠道',
+        editSource: '編輯訂單渠道',
+        deleteConfirm: '確定要刪除這個訂單渠道嗎？',
+        deleteWarning: '此操作不可恢復',
+
+        // 表格列
+        sourceType: '渠道類型',
+        sourceName: '渠道名稱',
+        descriptionColumn: '描述',
+        displayOrder: '顯示順序',
+        status: '狀態',
+        createdAt: '創建時間',
+        actions: '操作',
+
+        // 狀態
+        active: '啟用',
+        inactive: '停用',
+
+        // 表單標籤
+        selectSourceType: '選擇渠道類型',
+        sourceNamePlaceholder: '請輸入渠道名稱',
+        descriptionLabel: '描述',
+        descriptionPlaceholder: '請輸入描述（可選）',
+        displayOrderPlaceholder: '請輸入顯示順序',
+
+        // 驗證
+        sourceTypeRequired: '請選擇渠道類型',
+        sourceNameRequired: '請輸入渠道名稱',
+        sourceNameMinLength: '渠道名稱至少需要2個字符',
+        sourceNameMaxLength: '渠道名稱不能超過100個字符',
+        displayOrderRequired: '請輸入顯示順序',
+        selectOrgRequired: '請先選擇一個組織',
+
+        // 消息
+        createSuccess: '訂單渠道創建成功',
+        updateSuccess: '訂單渠道更新成功',
+        deleteSuccess: '訂單渠道刪除成功',
+        createFailed: '創建訂單渠道失敗',
+        updateFailed: '更新訂單渠道失敗',
+        deleteFailed: '刪除訂單渠道失敗',
+        loadFailed: '加載訂單渠道列表失敗',
+
+        // 操作
+        edit: '編輯',
+        delete: '刪除',
+        refresh: '刷新',
+        cancel: '取消',
+        confirm: '確定',
+        managePricing: '管理定價',
+
+        // 空狀態
+        empty: '暫無訂單渠道',
+
+        // 系統預設標籤
+        systemPreset: '系統預設',
+
+        // 搜索和分頁
+        search: '按渠道類型或名稱搜索...',
+        total: '共',
+        items: '條',
+
+        // 渠道定價管理模塊
+        pricingManagementTitle: '定價管理',
+        pricingManagementDesc: '為不同的訂單渠道設置差異化的商品定價',
+        pricingManagement: '渠道定價管理',
+        selectChannel: '選擇訂單渠道',
+        selectChannelPlaceholder: '請選擇訂單渠道',
+        selectChannelFirst: '請先選擇一個訂單渠道',
+        selectedChannel: '當前選中渠道',
+        loadChannelsFailed: '加載訂單渠道列表失敗',
+        loadPricesFailed: '加載價格配置失敗',
+
+        // 定價項管理
+        itemId: '項目ID',
+        itemIdPlaceholder: '請輸入菜品/加料/套餐的ID',
+        itemType: '項目類型',
+        item: '菜品',
+        addon: '加料',
+        combo: '套餐',
+        items: '菜品',
+        addons: '加料',
+        combos: '套餐',
+
+        // 價格策略
+        strategy: '定價策略',
+        percentage: '百分比',
+        fixed: '固定差價',
+        absolute: '絕對價格',
+        absolutePrice: '絕對價格',
+        fixedPrice: '固定差價',
+        percentagePrice: '百分比',
+        price: '價格',
+        pricePlaceholder: '請輸入商品價格',
+        priceDiff: '價格差異',
+        priceDiffPlaceholder: '請輸入價格差異（可以為負數）',
+        percentagePlaceholder: '請輸入百分比（如：10 表示增加10%）',
+        noPricesWarning: '請至少添加一個價格配置',
+        applyAll: '保存所有修改',
+        modified: '已修改',
+        noChanges: '沒有任何更改',
+        
+        // 批量定價工具
+        batchPricingTool: '批量定價工具',
+        pricingMethod: '定價方式',
+        selectPricingMethod: '選擇定價方式',
+        percentageDiscount: '百分比折扣',
+        adjustmentAmount: '增減金額',
+        discountPercentage: '折扣百分比',
+        adjustmentAmountLabel: '增減金額',
+        percentagePlaceholderShort: '如: -10',
+        adjustmentPlaceholder: '如: -5 或 +3',
+        applyToAll: '批量應用',
+        reset: '重置',
+        preview: '預覽',
+        originalPrice: '原價',
+        finalPrice: '最終價格',
+        fixedPriceLabel: '固定價格',
+        
+        // 單個商品編輯
+        editPrice: '編輯價格',
+        setNewPrice: '設置新價格',
+        priceChange: '價格變化',
+        noChange: '無變化',
+        priceUpdated: '價格已更新',
+        enterPrice: '請輸入價格',
+
+        // 自定義選項定價
+        customOptionPricing: '自定義選項定價',
+        customOption: '自定義選項',
+        customOptionGroup: '自定義選項組',
+        optionGroup: '選項組',
+        optionName: '選項名稱',
+        defaultPrice: '默認價格',
+        itemLevelPrice: '商品級價格',
+        channelPrice: '渠道價格',
+        priceSource: '價格來源',
+        pricePriority: '價格優先級',
+        setChannelPrice: '設置渠道價',
+        deleteChannelPrice: '刪除渠道價',
+        customOptionPrices: '自定義選項價格',
+        viewCustomOptions: '查看自定義選項',
+        hideCustomOptions: '收起自定義選項',
+        noCustomOptions: '該商品沒有關聯的自定義選項',
+        customOptionPricingTip: '價格計算優先級：渠道價格 > 商品級價格 > 默認價格',
+        saveOptionPrices: '保存選項價格',
+        newChannelPrice: '新的渠道價格',
+        currentChannelPrice: '當前渠道價',
+        notSet: '未設置',
+        deleteConfirmTitle: '確認刪除',
+        deleteCustomOptionPriceConfirm: '確定要刪除此自定義選項的渠道價格嗎？',
+        saveCustomOptionPricesSuccess: '成功保存 {{count}} 個自定義選項價格',
+        saveCustomOptionPricesFailed: '保存自定義選項價格失敗',
+        deleteCustomOptionPriceSuccess: '刪除成功',
+        deleteCustomOptionPriceFailed: '刪除失敗',
+        loadCustomOptionPricesFailed: '加載自定義選項價格失敗',
+        priceSourceChannel: '渠道定價',
+        priceSourceItem: '商品定價',
+        priceSourceDefault: '默認價格'
+      },
+      menuSync: {
+        title: '菜單同步',
+        categoryManagement: '分類管理',
+        categoryManagementTip: '分類會按照此處的順序在 Uber 上展示。若要隱藏商品，請在所有分類中移除。若未配置分類，菜單不會在 Uber 上顯示。',
+        itemConfig: '商品配置',
+        modifierConfig: '修飾符配置',
+        noCategoriesAdded: '該菜單還沒有添加任何分類。請從下方選擇分類添加。',
+        categoriesOfMenu: '菜單的分類',
+        itemsConfigured: '已配置 {{count}} 個商品',
+        systemCategory: '系統分類',
+        moveUp: '向上移動',
+        moveDown: '向下移動',
+        configItems: '配置商品',
+        deleteMenu: '刪除菜單',
+        deleteMenuConfirm: '刪除菜單配置',
+        deleteMenuConfirmDesc: '確定要刪除「{{name}}」菜單配置嗎？',
+        deleteMenuNote: '注意：此操作只刪除數據庫中的菜單配置，不會自動同步到 Uber。如需同步刪除，請在刪除後手動點擊"同步到 Uber"按鈕。',
+        confirmDelete: '確定刪除',
+        businessHoursSetting: '營業時間設置',
+        menuName: '菜單名稱',
+        menuNamePlaceholder: '例如: 早餐菜單、午餐菜單、晚餐菜單',
+        businessHours: '營業時間（週一至週日）',
+        rest: '休息',
+        startTime: '開始',
+        endTime: '結束',
+        addTimeSlot: '添加',
+        createMenu: '創建菜單',
+        editMenu: '編輯菜單',
+        editMenuInfo: '編輯菜單信息',
+        newMenu: '新建菜單'
       }
     }
   }

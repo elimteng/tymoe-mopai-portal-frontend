@@ -41,20 +41,18 @@ class HttpService {
         // 注入组织上下文（若存在）
         try {
           const organizationId = localStorage.getItem('organization_id')
-          console.log('🔍 [HTTP DEBUG] Organization ID from localStorage:', organizationId)
           
           if (organizationId) {
-            console.log('🔍 [HTTP DEBUG] Request URL:', config.url)
-            
             // 检查是否需要添加组织ID的请求
-            // 包括：商品管理、菜单中心、订单服务等业务API
+            // 包括：商品管理、菜单中心、订单服务、财务服务等业务API
             const needsOrgContext = typeof config.url === 'string' && (
               config.url.includes('/api/item-manage') ||
               config.url.includes('/api/menu-service') ||
               config.url.includes('/api/order') ||
+              config.url.includes('/api/finance') ||
               config.url.includes('/menu-center')
             )
-            
+
             // 排除不需要组织上下文的请求（认证、注册等）
             const isAuthRequest = typeof config.url === 'string' && (
               config.url.includes('/identity/register') ||
@@ -63,31 +61,22 @@ class HttpService {
               config.url.includes('/auth-service/v1/oauth') ||
               config.url.includes('/auth-service/v1/identity')
             )
-            
+
             if (needsOrgContext && !isAuthRequest) {
               config.headers['X-Organization-Id'] = organizationId
               config.headers['X-Tenant-Id'] = organizationId
-              console.log('✅ [HTTP DEBUG] Added organization headers:', {
-                'X-Organization-Id': organizationId,
-                'X-Tenant-Id': organizationId,
-                url: config.url
-              })
-            } else if (isAuthRequest) {
-              console.log('⚠️ [HTTP DEBUG] Skipping organization headers for auth request')
-            } else {
-              console.log('ℹ️ [HTTP DEBUG] URL does not require organization context')
+              // 对于Finance API，使用小写的 x-tenant-id
+              if (config.url.includes('/api/finance')) {
+                config.headers['x-tenant-id'] = organizationId
+              }
             }
-          } else {
-            console.log('❌ [HTTP DEBUG] No organization ID found in localStorage')
           }
         } catch (error) {
-          console.error('❌ [HTTP DEBUG] Error injecting organization context:', error)
+          console.error('Error injecting organization context:', error)
         }
         
         // 对于注册和登录请求，强制清除所有认证相关的头部和配置
         if (config.url?.includes('/identity/register') || config.url?.includes('/identity/login')) {
-          const requestType = config.url.includes('/register') ? 'registration' : 'login'
-          console.log(`🧹 Forcing clean request for ${requestType}`)
           // 删除所有可能的认证头部
           delete config.headers.Cookie
           delete config.headers.cookie
@@ -103,34 +92,6 @@ class HttpService {
           }
         }
         
-        // 详细记录请求信息
-        const isItemManageRequest = config.url?.includes('/item-manage/')
-        const requestMethod = config.method?.toUpperCase()
-        
-        if (isItemManageRequest) {
-          console.log(`🚀 [${requestMethod}] Item Management Request:`)
-          console.log('📍 URL:', config.url)
-          console.log('📋 Headers:', JSON.stringify(config.headers, null, 2))
-          console.log('📦 Request Body:', JSON.stringify(config.data, null, 2))
-          console.log('⚙️ Config:', {
-            withCredentials: config.withCredentials,
-            timeout: config.timeout,
-            method: config.method
-          })
-        } else {
-          console.log('HTTP Request Details:', {
-            method: requestMethod,
-            url: config.url,
-            headers: config.headers,
-            data: config.data
-          })
-        }
-        
-        // 对于注册请求，额外记录请求体内容
-        if (config.url?.includes('/identity/register')) {
-          console.log('📝 Registration payload:', JSON.stringify(config.data, null, 2))
-        }
-        
         return config
       },
       (error) => Promise.reject(error)
@@ -139,42 +100,9 @@ class HttpService {
     // 响应拦截器
     this.api.interceptors.response.use(
       (response: AxiosResponse) => {
-        const isItemManageRequest = response.config.url?.includes('/item-manage/')
-        const requestMethod = response.config.method?.toUpperCase()
-        
-        // 对于商品管理请求，记录详细响应
-        if (isItemManageRequest) {
-          console.log(`✅ [${requestMethod}] Item Management Response:`)
-          console.log('📍 URL:', response.config.url)
-          console.log('📊 Status:', response.status, response.statusText)
-          console.log('📦 Response Data:', JSON.stringify(response.data, null, 2))
-          console.log('📋 Response Headers:', JSON.stringify(response.headers, null, 2))
-        }
-        
-        // 对于注册和登录请求，记录详细响应
-        if (response.config.url?.includes('/identity/register')) {
-          console.log('🎉 Registration API Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data: response.data,
-            headers: response.headers
-          })
-        }
-        
-        if (response.config.url?.includes('/identity/login')) {
-          console.log('🎉 Login API Response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data: response.data,
-            headers: response.headers
-          })
-        }
         return response
       },
       (error: AxiosError) => {
-        const isItemManageRequest = error.config?.url?.includes('/item-manage/')
-        const requestMethod = error.config?.method?.toUpperCase()
-        
         if (error.response?.status === 401) {
           // 只有认证相关的API返回401时才登出
           // 业务API的401可能是权限问题，不应该强制登出
@@ -183,7 +111,6 @@ class HttpService {
                                 error.config?.url?.includes('/identity')
           
           if (isAuthRequest && !this.isRefreshing) {
-            console.log('🔄 [HTTP DEBUG] Auth token expired, redirecting to login...')
             this.isRefreshing = true
             
             // 清除所有认证信息
@@ -196,22 +123,7 @@ class HttpService {
               this.isRefreshing = false
               window.location.href = '/login'
             }, 100)
-          } else if (!isAuthRequest) {
-            // 业务API的401，记录日志但不登出
-            console.warn('⚠️ [HTTP DEBUG] Business API returned 401:', error.config?.url)
-            console.warn('⚠️ This might be a permission issue or the service is not available')
           }
-        }
-        
-        // 对于商品管理请求，记录详细错误信息
-        if (isItemManageRequest) {
-          console.error(`❌ [${requestMethod}] Item Management Error:`)
-          console.error('📍 URL:', error.config?.url)
-          console.error('📊 Status:', error.response?.status, error.response?.statusText)
-          console.error('📦 Error Data:', JSON.stringify(error.response?.data, null, 2))
-          console.error('📋 Error Headers:', JSON.stringify(error.response?.headers, null, 2))
-          console.error('🔍 Request Data:', JSON.stringify(error.config?.data, null, 2))
-          console.error('🔍 Request Headers:', JSON.stringify(error.config?.headers, null, 2))
         }
         
         return Promise.reject(error)
@@ -233,6 +145,19 @@ class HttpService {
       const response = await this.api.post<T>(url, data, config)
       return { data: response.data, status: response.status }
     } catch (error) {
+      // 特殊处理：如果是400但响应中包含数据，可能是后端返回了成功数据但状态码错误
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        const responseData = error.response.data
+        console.warn('⚠️ 收到400响应但可能包含有效数据:', responseData)
+        
+        // 如果响应中有 success=true 或包含 id 字段，说明实际是成功的
+        if (responseData && typeof responseData === 'object') {
+          if ((responseData as any).success === true || (responseData as any).id) {
+            console.log('✅ 400响应但数据有效，视为成功')
+            return { data: responseData as T, status: 200 }
+          }
+        }
+      }
       throw this.handleError(error)
     }
   }
@@ -324,7 +249,15 @@ class HttpService {
       if (error.response?.status === 500) {
         return new Error('服务器内部错误，请稍后重试')
       } else if (error.response?.status === 400) {
-        return new Error('请求参数错误')
+        // 对于400错误，尝试提供更详细的错误信息
+        const responseData = error.response?.data
+        if (responseData && typeof responseData === 'object') {
+          const errorMsg = (responseData as any).message || (responseData as any).detail || (responseData as any).error
+          if (errorMsg) {
+            return new Error(errorMsg)
+          }
+        }
+        return new Error('请求参数错误，请检查输入数据')
       } else if (error.response?.status === 401) {
         return new Error('未授权访问')
       } else if (error.response?.status === 403) {

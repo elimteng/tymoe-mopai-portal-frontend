@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, Row, Col, Button, message, Spin, Tag } from 'antd'
 import { CheckOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
-import { httpService } from '@/services/http'
+import { getReceiptStyles } from '@/services/receipt-template'
 
 interface Style {
   styleId: string
@@ -241,15 +241,13 @@ const StyleSelector: React.FC<StyleSelectorProps> = ({ onComplete, onStyleSelect
     const fetchStyles = async () => {
       setLoading(true)
       try {
-        const response = await httpService.get<{ success: boolean; data: Style[] }>(
-          '/api/order/v1/receipt-templates/styles'
-        )
-        
-        if (response.data.success) {
-          setStyles(response.data.data)
+        const response = await getReceiptStyles()
+
+        if (response.success) {
+          setStyles(response.data)
           // 默认选择第一个样式
-          if (response.data.data.length > 0) {
-            setSelectedStyle(response.data.data[0].styleId)
+          if (response.data.length > 0) {
+            setSelectedStyle(response.data[0].styleId)
           }
         } else {
           message.error('获取样式列表失败')

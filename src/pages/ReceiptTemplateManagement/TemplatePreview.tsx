@@ -2,6 +2,7 @@ import React from 'react'
 import { Divider } from 'antd'
 import { useTranslation } from 'react-i18next'
 import type { ReceiptTemplate, MultiLangText } from '@/services/receipt-template'
+import { formatPrice, toMinorUnit, fromMinorUnit } from '@/utils/priceConverter'
 
 interface TemplatePreviewProps {
   template: ReceiptTemplate

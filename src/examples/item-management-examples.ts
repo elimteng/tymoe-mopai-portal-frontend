@@ -5,13 +5,13 @@
  * 展示如何在实际项目中使用这些API。
  */
 
-import { 
+import {
   itemManagementService,
   type CreateItemPayload,
   type UpdateItemPayload,
   type CreateCategoryPayload,
   type CreateAddonPayload,
-  type ItemAddonPayload
+  type CreateItemAddonPayload
 } from '../services/item-management'
 
 // ==================== 商品管理示例 ====================
@@ -25,7 +25,7 @@ export async function itemManagementExamples() {
     const itemsPage1 = await itemManagementService.getItems({
       page: 1,
       limit: 5,
-      status: 'ACTIVE',
+      isActive: true,
       search: '测试'
     })
     console.log('第一页商品:', itemsPage1)
@@ -40,8 +40,9 @@ export async function itemManagementExamples() {
     const newItem: CreateItemPayload = {
       name: '示例商品 - 美式咖啡',
       description: '这是一个通过API创建的示例商品',
-      price: 25.50,
-      status: 'ACTIVE'
+      categoryId: '',
+      basePrice: 25.50,
+      isActive: true
     }
     const createdItem = await itemManagementService.createItem(newItem)
     console.log('创建的商品:', createdItem)
@@ -55,7 +56,7 @@ export async function itemManagementExamples() {
     console.log('\n✏️ 更新商品示例:')
     const updateData: UpdateItemPayload = {
       name: '更新后的美式咖啡',
-      price: 28.00,
+      basePrice: 28.00,
       description: '更新后的商品描述'
     }
     const updatedItem = await itemManagementService.updateItem(createdItem.id, updateData)
@@ -68,13 +69,15 @@ export async function itemManagementExamples() {
       items: [
         {
           name: '批量商品1',
-          price: 10.00,
-          status: 'ACTIVE'
+          categoryId: '',
+          basePrice: 10.00,
+          isActive: true
         },
         {
-          name: '批量商品2', 
-          price: 15.00,
-          status: 'ACTIVE'
+          name: '批量商品2',
+          categoryId: '',
+          basePrice: 15.00,
+          isActive: true
         }
       ]
     })
@@ -106,9 +109,7 @@ export async function categoryManagementExamples() {
     // 3. 创建分类
     console.log('\n➕ 创建分类示例:')
     const newCategory: CreateCategoryPayload = {
-      name: '示例分类 - 饮品',
-      description: '各种饮品分类',
-      status: 'ACTIVE'
+      name: '示例分类 - 饮品'
     }
     const createdCategory = await itemManagementService.createCategory(newCategory)
     console.log('创建的分类:', createdCategory)
@@ -117,9 +118,7 @@ export async function categoryManagementExamples() {
     console.log('\n➕ 创建子分类示例:')
     const subCategory: CreateCategoryPayload = {
       name: '咖啡',
-      description: '各种咖啡产品',
-      parentId: createdCategory.id,
-      status: 'ACTIVE'
+      parentId: createdCategory.id
     }
     const createdSubCategory = await itemManagementService.createCategory(subCategory)
     console.log('创建的子分类:', createdSubCategory)
@@ -148,7 +147,9 @@ export async function addonManagementExamples() {
       name: '额外糖浆',
       description: '为饮品添加额外糖浆',
       price: 3.00,
-      status: 'ACTIVE'
+      cost: 1.50,
+      trackInventory: false,
+      isActive: true
     }
     const createdAddon = await itemManagementService.createAddon(newAddon)
     console.log('创建的Add-on:', createdAddon)
@@ -157,12 +158,11 @@ export async function addonManagementExamples() {
     const items = await itemManagementService.getItems({ limit: 1 })
     if (items.data.length > 0) {
       const itemId = items.data[0].id
-      
+
       console.log('\n🔗 为商品添加Add-on:')
-      const itemAddonData: ItemAddonPayload = {
+      const itemAddonData: CreateItemAddonPayload = {
         addonId: createdAddon.id,
-        required: false,
-        sortOrder: 1
+        maxQuantity: 5
       }
       const itemAddon = await itemManagementService.addItemAddon(itemId, itemAddonData)
       console.log('商品Add-on关联:', itemAddon)
@@ -194,11 +194,9 @@ export async function attributeManagementExamples() {
     // 2. 创建属性类型
     console.log('\n➕ 创建属性类型示例:')
     const newAttributeType = await itemManagementService.createAttributeType({
-      name: '尺寸',
-      description: '商品尺寸规格',
-      dataType: 'SELECT',
-      required: true,
-      status: 'ACTIVE'
+      name: 'size',
+      displayName: '尺寸',
+      inputType: 'select'
     })
     console.log('创建的属性类型:', newAttributeType)
 
@@ -208,9 +206,8 @@ export async function attributeManagementExamples() {
     for (let i = 0; i < sizeOptions.length; i++) {
       const option = await itemManagementService.createAttributeOption(newAttributeType.id, {
         value: sizeOptions[i],
-        label: sizeOptions[i],
-        sortOrder: i + 1,
-        status: 'ACTIVE'
+        displayName: sizeOptions[i],
+        priceModifier: 0
       })
       console.log(`创建选项 ${sizeOptions[i]}:`, option)
     }
@@ -256,13 +253,13 @@ export async function comprehensiveExample() {
     const completeItem: CreateItemPayload = {
       name: '综合示例商品 - 特制拿铁',
       description: '包含完整属性和Add-on的示例商品',
-      price: 35.00,
-      categoryId: categoryResult.categoryId,
-      status: 'ACTIVE',
+      basePrice: 35.00,
+      categoryId: categoryResult.categoryId || '',
+      isActive: true,
       attributes: [
         {
-          attributeTypeId: attributeResult.attributeTypeId!,
-          value: '中杯'
+          attributeTypeId: attributeResult.attributeTypeId || '',
+          isRequired: true
         }
       ]
     }

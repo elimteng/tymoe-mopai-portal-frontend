@@ -4,26 +4,38 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // 加载环境变量
+  // loadEnv 的第三个参数指定前缀，返回的对象键会移除这个前缀
+  // 例如：prefix='VITE_' 会让 VITE_API_BASE 变成 env.API_BASE
   const env = loadEnv(mode, process.cwd(), '')
-  
+
+  console.log('🔍 [VITE CONFIG] Mode:', mode)
+  console.log('🔍 [VITE CONFIG] Loaded env:', {
+    VITE_ITEM_MANAGE_BASE: env.VITE_ITEM_MANAGE_BASE,
+    VITE_ORDER_API_BASE: env.VITE_ORDER_API_BASE,
+    VITE_MAPBOX_TOKEN: env.VITE_MAPBOX_TOKEN ? '(exists)' : '(missing)'
+  })
+
   return {
   plugins: [react()],
   server: {
     port: 5173,
     open: true,
+    host: true, // 允许外部访问
+    allowedHosts: [
+      'localhost',
+      '.trycloudflare.com', // 允许所有 Cloudflare Tunnel 域名
+      '.ngrok.io', // 允许 ngrok
+    ],
     proxy: {
-      // Item Management 代理 - 指向本地服务 (必须在 /api 之前)
-      '/api/item-manage': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-        ws: true
-      },
-      // Order Service 代理 - 小票模板等订单相关API
+      // 注意：/api/item-manage 请求已通过环境变量配置为直接 CORS 请求到 https://tymoe.com
+      // 不再使用 Vite 代理，前端直接向浏览器发送跨域请求
+      // 因此禁用对 /api/item-manage 的所有代理
+      // '/api/item-manage' 已禁用 - 使用环境变量VITE_ITEM_MANAGE_BASE直接CORS请求
+      // Order Service 代理 - 指向已部署的域名服务
       '/api/order': {
-        target: 'http://localhost:3002',
+        target: 'https://tymoe.com',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         ws: true,
         configure: (proxy, options) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
@@ -34,24 +46,19 @@ export default defineConfig(({ mode }) => {
           });
         }
       },
-      // API代理 - 只匹配非 item-manage 的请求
-      '^/api/(?!item-manage)': {
+      // Auth Service 代理 - 处理所有认证相关请求
+      '/api/auth-service': {
         target: 'https://tymoe.com',
         changeOrigin: true,
         secure: true,
         ws: true,
         configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.log('🚨 API Proxy error:', err);
-          });
           proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('🔄 Sending API Request to Target:', req.method, req.url);
-            console.log('🎯 Target URL:', `https://tymoe.com${req.url}`);
-            
+            console.log('🔄 Auth API Request:', req.method, req.url);
             // 修改 Origin 头部以通过 CORS 检查
             proxyReq.setHeader('origin', 'https://tymoe.com');
             proxyReq.setHeader('referer', 'https://tymoe.com/');
-            
+
             // 对于注册和登录请求，强制移除 Cookie 头部
             if (req.url?.includes('/identity/register') || req.url?.includes('/identity/login')) {
               const requestType = req.url.includes('/register') ? 'registration' : 'login'
@@ -61,14 +68,9 @@ export default defineConfig(({ mode }) => {
               proxyReq.removeHeader('authorization');
               proxyReq.removeHeader('Authorization');
             }
-            
-            console.log('📋 Request Headers (after modification):', proxyReq.getHeaders());
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('✅ Received API Response:', proxyRes.statusCode, req.url);
-            if (proxyRes.statusCode >= 400) {
-              console.log('❌ Error response detected for:', req.url);
-            }
+            console.log('✅ Auth API Response:', proxyRes.statusCode, req.url);
           });
         }
       },
@@ -85,11 +87,11 @@ export default defineConfig(({ mode }) => {
           proxy.on('proxyReq', (proxyReq, req, res) => {
             console.log('🔄 Sending OAuth Request to Target:', req.method, req.url);
             console.log('🎯 Target URL:', `https://tymoe.com${req.url}`);
-            
+
             // 修改 Origin 头部以通过 CORS 检查
             proxyReq.setHeader('origin', 'https://tymoe.com');
             proxyReq.setHeader('referer', 'https://tymoe.com/');
-            
+
             console.log('📋 OAuth Request Headers:', proxyReq.getHeaders());
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
@@ -99,6 +101,13 @@ export default defineConfig(({ mode }) => {
             }
           });
         }
+      },
+      // Finance Service 代理 - 支付相关API
+      '/api/finance': {
+        target: 'http://localhost:3003',
+        changeOrigin: true,
+        secure: false,
+        ws: true
       }
     }
   },
@@ -113,10 +122,18 @@ export default defineConfig(({ mode }) => {
     'import.meta.env.VITE_AUTH_BASE': JSON.stringify(''),
     'import.meta.env.VITE_AUTH_DISABLED': JSON.stringify('false'),
     'import.meta.env.VITE_TURNSTILE_SITE_KEY': JSON.stringify('0x4AAAAAAB2ATX6Vry7IHSDD'),
-    // Item Management 指向代理服务
-    'import.meta.env.VITE_ITEM_MANAGE_BASE': JSON.stringify('/api/item-manage/v1'),
-    // Order Service 指向代理服务
-    'import.meta.env.VITE_ORDER_API_BASE': JSON.stringify('/api/order/v1'),
+    // Item Management - 使用环境变量或默认的HTTPS地址（支持直接CORS访问）
+    'import.meta.env.VITE_ITEM_MANAGE_BASE': JSON.stringify(
+      env.VITE_ITEM_MANAGE_BASE || 'https://tymoe.com/api/item-manage/v1'
+    ),
+    // Order Service - 使用环境变量或默认的HTTPS地址（支持直接CORS访问）
+    'import.meta.env.VITE_ORDER_API_BASE': JSON.stringify(
+      env.VITE_ORDER_API_BASE || 'https://tymoe.com/api/order/v1'
+    ),
+    // Uber Service API - 用于订单管理
+    'import.meta.env.VITE_UBER_API_BASE': JSON.stringify(
+      env.VITE_UBER_API_BASE || 'http://localhost:3004/api/uber/v1'
+    ),
     // Mapbox API Token - 从环境变量加载
     'import.meta.env.VITE_MAPBOX_TOKEN': JSON.stringify(env.VITE_MAPBOX_TOKEN || ''),
   }

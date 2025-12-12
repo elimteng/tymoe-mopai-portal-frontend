@@ -135,7 +135,7 @@ const RecipeManagement: React.FC<RecipeManagementProps> = ({ itemId }) => {
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
           >
-            {t('pages.recipeGuide.edit')}
+            编辑
           </Button>
           <Popconfirm
             title={t('pages.recipeGuide.deleteRecipeConfirm')}
@@ -149,9 +149,8 @@ const RecipeManagement: React.FC<RecipeManagementProps> = ({ itemId }) => {
               size="small"
               danger
               icon={<DeleteOutlined />}
-            >
-              {t('pages.recipeGuide.delete')}
-            </Button>
+              title="删除配方"
+            />
           </Popconfirm>
         </Space>
       )

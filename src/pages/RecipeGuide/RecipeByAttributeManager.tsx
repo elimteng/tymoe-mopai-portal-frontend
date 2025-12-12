@@ -246,25 +246,23 @@ const RecipeByAttributeManager: React.FC<RecipeByAttributeManagerProps> = ({
                 icon={<EditOutlined />}
                 onClick={() => handleEditRecipe(record.recipe!)}
               >
-                {t('pages.recipeGuide.editRecipe')}
+                编辑
               </Button>
               <Button
                 type="link"
                 size="small"
                 icon={<CopyOutlined />}
                 onClick={() => handleCopyToAll(record.recipe!)}
-              >
-                {t('pages.recipeGuide.batchCopyToUnconfigured')}
-              </Button>
+                title="复制到所有其他组合"
+              />
               <Button
                 type="link"
                 size="small"
                 danger
                 icon={<DeleteOutlined />}
                 onClick={() => handleDeleteRecipe(record.recipe!)}
-              >
-                {t('pages.recipeGuide.deleteRecipe')}
-              </Button>
+                title="删除配方"
+              />
             </>
           ) : (
             <Button

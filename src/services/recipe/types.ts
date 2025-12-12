@@ -1,205 +1,177 @@
-// 制作指引相关类型定义
+// 制作指引相关类型定义 (v2.2 - 简化配方系统)
 
-// 步骤材料引用
-export interface StepIngredient {
-  stepNumber: number              // 引用的步骤编号
-  amount?: number                 // 可选：覆盖用量
+// ==================== v2.2 配方核心类型 ====================
+
+// 配方修饰符条件（v2.2 新架构）
+export interface RecipeCondition {
+  modifierGroupId: string   // 修饰符组ID
+  modifierOptionId: string  // 修饰符选项ID
 }
 
-// 配方步骤（根据API文档）
+// 配方步骤（v2.2）
 export interface RecipeStep {
   id?: string
-  recipeId?: string
-  stepNumber?: number
   stepTypeId: string              // 必填：步骤类型ID
-  amount?: number | string        // 数量（数字或文本，如: 200, "200ml", "1杯"）
-  ingredients?: StepIngredient[] | string  // 原料信息（对象数组或字符串）
-  operation?: string              // 操作说明
-  printCode?: string              // 打印代码
-  duration?: number               // 持续时间(秒)
-  sortOrder?: number              // 排序
+  displayOrder: number            // 显示顺序
+  instruction?: string            // instruction输入（如：200、2键、加热等）
+  containedSteps?: string[]       // 包含的其他步骤ID（用于设备步骤）
   stepType?: StepType             // 关联的步骤类型
+  generatedPrintCode?: string     // 生成的打印代码（步骤code + instruction）
   createdAt?: string
   updatedAt?: string
 }
 
-// 配方（根据API文档）
+// 配方（v2.2）
 export interface Recipe {
   id: string
-  tenantId?: string
   itemId: string
-  name: string
+  name: string                    // 自动生成，基于选项displayName
+  printCode: string               // 必填：商品打印代码（如：LICE、MHOT）
+  recipePrintCode?: string        // 自动生成：完整制作打印代码（包含所有步骤）
+  displayCodeString?: string      // 可选：显示代码（如：L-ICE、M-HOT）
   description?: string
-  version?: string
-  attributeConditions?: Record<string, string> | null  // 属性匹配条件
-  priority?: number                                     // 优先级
-  isDefault?: boolean
   isActive?: boolean
-  printCodeString?: string                              // 打印代码字符串
-  displayCodeString?: string                            // 显示代码字符串
+  priority?: number               // 优先级（用于匹配时的排序）
+  modifierConditions?: RecipeCondition[]  // 修饰符条件数组
   steps?: RecipeStep[]
-  item?: {
-    id: string
-    name: string
-    code?: string
-  }
   createdAt?: string
   updatedAt?: string
 }
 
-// 创建配方请求(简化版)
+// 创建配方请求 (v2.2)
 export interface CreateRecipeRequest {
   itemId: string
-  name?: string                                         // 可选: 不填自动生成
+  printCode: string                       // 必填：商品打印代码
+  displayCodeString?: string              // 可选：显示代码
   description?: string
-  attributeConditions?: Record<string, string> | null   // 属性匹配条件
-  priority?: number                                     // 优先级,默认0
-  steps?: Omit<RecipeStep, 'id'>[]
-}
-
-// 更新配方请求
-export interface UpdateRecipeRequest {
-  itemId?: string
-  name?: string
-  description?: string
-  version?: string
-  attributeConditions?: Record<string, string> | null
-  priority?: number
-  isDefault?: boolean
-  isActive?: boolean
-  steps?: Omit<RecipeStep, 'id'>[]
-}
-
-// 添加步骤请求
-export interface AddStepRequest {
-  stepTypeId?: string
-  title: string
-  description?: string
-  printCode?: string
-  displayCode?: string
-  fields: Record<string, any>
-  duration?: number
-  sortOrder?: number
-  isCritical?: boolean
-  isOptional?: boolean
-  tags?: string[]
-}
-
-// 更新步骤请求
-export interface UpdateStepRequest {
-  title?: string
-  description?: string
-  printCode?: string
-  displayCode?: string
-  fields?: Record<string, any>
-  duration?: number
-  sortOrder?: number
-  isCritical?: boolean
-  isOptional?: boolean
-  tags?: string[]
-}
-
-// 属性变体
-export interface AttributeVariant {
-  id: string
-  recipeId: string
-  name: string
-  description?: string
-  attributeConditions: Record<string, string>
-  priority: number
-  isActive?: boolean
-  createdAt?: string
-  updatedAt?: string
-}
-
-// 创建属性变体请求
-export interface CreateVariantRequest {
-  name: string
-  description?: string
-  attributeConditions: Record<string, string>
-  priority: number
-  isActive?: boolean
-}
-
-// 步骤覆盖
-export interface StepOverride {
-  id?: string
-  variantId: string
-  stepNumber: number
-  action: 'modify' | 'replace' | 'remove' | 'add' | 'insert_before' | 'insert_after'
-  printCode?: string
-  displayCode?: string
-  fields?: Record<string, any>
-}
-
-// 添加步骤覆盖请求
-export interface AddOverrideRequest {
-  stepNumber: number
-  action: 'modify' | 'replace' | 'remove' | 'add' | 'insert_before' | 'insert_after'
-  printCode?: string
-  displayCode?: string
-  fields?: Record<string, any>
-}
-
-// 配方计算请求
-export interface CalculateRecipeRequest {
-  itemId: string
-  attributes: Record<string, string>
-}
-
-// 计算后的步骤
-export interface CalculatedStep {
-  stepNumber: number
-  title: string
-  printCode?: string
-  displayCode?: string
-  fields: Record<string, any>
-  duration?: number
-  isCritical?: boolean
-}
-
-// 配方计算响应
-export interface CalculateRecipeResponse {
-  recipe: {
-    id: string
-    name: string
-    version: string
-  }
-  appliedVariants: Array<{
-    id: string
-    name: string
-    priority: number
-    attributeConditions: Record<string, string>
+  conditions: RecipeCondition[]           // 必填：修饰符条件数组
+  steps?: Array<{
+    stepTypeId: string
+    displayOrder: number
+    instruction?: string                  // instruction输入
+    containedSteps?: number[]             // 包含的步骤索引（用于设备步骤）
   }>
-  finalSteps: CalculatedStep[]
-  printCodeString: string
-  displayCodeString: string
-  totalDuration: number
 }
 
-// 步骤类型(简化版)
+// 更新配方请求 (v2.2)
+export interface UpdateRecipeRequest {
+  printCode?: string
+  displayCodeString?: string
+  description?: string
+  isActive?: boolean
+  priority?: number
+  // 注意：conditions 不能通过此接口更新，需删除后重建
+}
+
+// 更新配方步骤请求 (v2.2)
+export interface UpdateRecipeStepsRequest {
+  steps: Array<{
+    stepTypeId: string
+    displayOrder: number
+    instruction?: string
+    containedSteps?: number[]             // 包含的步骤索引（用于设备步骤）
+  }>
+}
+
+// ==================== v2.2 新增 API 类型 ====================
+
+// 生成修饰符组合列表的请求
+export interface GenerateCombinationsRequest {
+  modifierGroupIds: string[]
+}
+
+// 修饰符组合选项
+export interface CombinationOption {
+  modifierGroupId: string
+  modifierOptionId: string
+  displayName: string
+}
+
+// 修饰符组合
+export interface ModifierCombination {
+  id: string
+  options: CombinationOption[]
+  hasRecipe: boolean
+}
+
+// 生成修饰符组合列表的响应
+export interface GenerateCombinationsResponse {
+  combinations: ModifierCombination[]
+}
+
+// 复制配方的目标组合
+export interface CopyRecipeTarget {
+  conditions: RecipeCondition[]
+  printCode: string
+  displayCodeString?: string
+}
+
+// 复制配方请求
+export interface CopyRecipeRequest {
+  targetCombinations: CopyRecipeTarget[]
+}
+
+// 复制配方响应
+export interface CopyRecipeResponse {
+  sourceRecipeId: string
+  createdCount: number
+  failedCount: number
+  recipes: Recipe[]
+}
+
+// 匹配配方请求
+export interface MatchRecipeRequest {
+  itemId: string
+  selectedOptions: string[]  // modifier option IDs
+}
+
+// 匹配配方响应
+export interface MatchRecipeResponse {
+  matched: boolean
+  recipe?: {
+    id: string
+    name: string
+    printCode: string
+    displayCodeString?: string
+    description?: string
+    steps: RecipeStep[]
+  }
+  printCode?: string
+  message?: string
+  selectedOptions?: string[]
+}
+
+// ==================== 步骤类型管理 ====================
+
+// 步骤类型
 export interface StepType {
   id: string
   tenantId?: string
-  code: string
+  code: string                              // 打印代码（如：mk、[]等）
   name: string
   category: 'ingredient' | 'equipment' | 'action'
+  equipment?: string
+  description?: string
+  isContainer?: boolean                     // 是否是容器步骤（设备步骤）
+  containerPrefix?: string                  // 容器前缀（如：[）
+  containerSuffix?: string                  // 容器后缀（如：]）
   isActive?: boolean
   createdAt?: string
   updatedAt?: string
 }
 
-// 创建步骤类型请求(简化版)
+// 创建步骤类型请求
 export interface CreateStepTypeRequest {
   name: string
   code: string
-  category: 'ingredient' | 'equipment' | 'action'
+  category?: 'ingredient' | 'equipment' | 'action'
+  equipment?: string
+  description?: string
 }
 
 // 代码建议请求
 export interface CodeSuggestionRequest {
-  name: string
-  category: 'ingredient' | 'equipment' | 'action'
+  context: string
 }
 
 // 代码建议响应
@@ -211,32 +183,18 @@ export interface CodeSuggestion {
 
 // 代码建议响应包装
 export interface CodeSuggestionResponse {
-  name: string
-  category: string
   suggestions: CodeSuggestion[]
 }
 
 // 设备符号
 export interface EquipmentSymbol {
-  symbol: string
-  name: string
-  description: string
-}
-
-// 代码生成请求
-export interface GenerateCodeRequest {
-  input: string
-  category: 'ingredient' | 'equipment' | 'action'
-}
-
-// 代码生成响应
-export interface GenerateCodeResponse {
   code: string
-  rule: string
-  description: string
+  name: string
+  icon: string
 }
 
-// API响应包装
+// ==================== API 响应包装 ====================
+
 export interface ApiResponse<T> {
   success: boolean
   data?: T

@@ -1,0 +1,54 @@
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.orderCard {
+  border-left: 4px solid #ff7875;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.orderCard:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.orderHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.infoItem {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.label {
+  font-weight: 500;
+  min-width: 60px;
+  color: #666;
+}
+
+.value {
+  color: #333;
+  flex: 1;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
+
+  .orderCard {
+    margin-bottom: 12px;
+  }
+
+  .infoItem {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

@@ -1,7 +1,30 @@
 const en = {
   translation: {
-    app: { title: 'Portal Admin' },
-  nav: {
+    app: { title: 'Tymoe Platform' },
+    common: {
+      back: 'Back',
+      confirm: 'Confirm',
+      cancel: 'Cancel',
+      save: 'Save',
+      delete: 'Delete',
+      edit: 'Edit',
+      create: 'Create',
+      search: 'Search',
+      reset: 'Reset',
+      submit: 'Submit',
+      success: 'Success',
+      error: 'Error',
+      saveSuccess: 'Saved successfully',
+      saveFailed: 'Save failed',
+      loading: 'Loading...',
+      noData: 'No Data',
+      yes: 'Yes',
+      no: 'No',
+      total: 'Total',
+      items: 'items',
+      refresh: 'Refresh'
+    },
+    nav: {
     dashboard: 'Dashboard',
     menuCenter: 'Menu Center',
     organizations: 'Organizations',
@@ -9,7 +32,9 @@ const en = {
     devices: 'Devices',
     receiptTemplate: 'Receipt Templates',
     features: 'Features',
-    recipeGuide: 'Recipe Guide'
+    recipeGuide: 'Recipe Guide',
+    orderConfig: 'Order Configuration',
+    paymentSettings: 'Payment Settings'
   },
     organization: {
       title: 'Organization Management',
@@ -790,7 +815,8 @@ const en = {
         // Actions
         enable: 'Enable',
         disable: 'Disable',
-        
+        testPrint: 'Test Print',
+
         // Messages
         createSuccess: 'Template created successfully',
         updateSuccess: 'Template updated successfully',
@@ -806,7 +832,10 @@ const en = {
         toggleFailed: 'Failed to toggle status',
         loadFailed: 'Failed to load templates',
         formValidationError: 'Form validation failed',
-        
+        generatingPrint: 'Generating print file...',
+        printGenerated: 'Print file generated, downloading',
+        printFailed: 'Failed to generate print file',
+
         // Confirm
         deleteConfirm: 'Are you sure you want to delete this template?',
         deleteWarning: 'This action cannot be undone',
@@ -922,6 +951,27 @@ const en = {
         moveDown: 'Move Down',
         removeStep: 'Remove',
         
+        // New Step Editor
+        instruction: 'Instruction',
+        instructionPlaceholder: 'Quantity/Operation/Shortcut key etc.',
+        instructionQuantity: 'e.g., 200 (ml)',
+        instructionKey: 'e.g., 2 (key)',
+        containedSteps: 'Contained Steps',
+        containedStepsEmpty: 'No steps selected, will only print equipment code',
+        stepContained: 'Contained',
+        equipmentStep: 'Equipment',
+        recipePrintCodeTitle: 'Recipe Print Code',
+        recipePrintCodeDesc: 'This code will be saved to database for order printing',
+        recipePrintCodeEmpty: '(No steps)',
+        printCodeRulesTitle: 'Print Code Rules',
+        printCodeRule1: 'Each step code = step type code + instruction',
+        printCodeRule2: 'Example: milk(mk) + 200 = mk200',
+        printCodeRule3: 'Equipment steps wrap other steps with prefix/suffix',
+        printCodeRule4: 'Example: Blender([]) contains mk200, press key 2 = [mk200]2',
+        printCodeRule5: 'Contained steps will not be printed separately',
+        printCodeRule6: 'Final recipe print code = concatenated codes of all non-contained steps',
+        codePreview: 'Code',
+        
         // Attribute Variants
         variantsConfig: 'Attribute Variants',
         createVariant: 'Create Variant',
@@ -966,6 +1016,7 @@ const en = {
         categoryEquipment: 'Equipment',
         categoryManual: 'Manual',
         categoryTiming: 'Timing',
+        categoryAction: 'Action',
         icon: 'Icon',
         iconPlaceholder: 'Icon name',
         color: 'Color',
@@ -976,6 +1027,41 @@ const en = {
         positionWrap: 'Wrap',
         positionPrefix: 'Prefix',
         positionSuffix: 'Suffix',
+        // StepTypeFormModalEnhanced
+        presetBracketSquare: 'Square Brackets []',
+        presetBracketRound: 'Round Brackets ()',
+        presetBracketCurly: 'Curly Brackets {}',
+        presetBracketAngle: 'Angle Brackets <>',
+        categoryLabel: 'Category',
+        categoryRequired: 'Please select category',
+        nameLabel: 'Name',
+        nameRequired: 'Please enter name',
+        namePlaceholder: 'e.g.: Milk, Blender, Heat',
+        codeLabel: 'Code',
+        codeRequired: 'Please enter code',
+        codeTooltip: 'Short code for printing, must be unique within organization',
+        codePlaceholderIngredient: 'e.g.: MK, BT, ICE',
+        codePlaceholderEquipment: 'e.g.: *',
+        codePlaceholderAction: 'e.g.: HEAT, SHAKE',
+        codeDuplicateError: 'This code is already in use, please use another code',
+        loadingSuggestions: 'Loading code suggestions...',
+        suggestionsLabel: 'Recommended codes (click to select):',
+        containerAlert: 'Equipment steps can contain other steps',
+        containerAlertDesc: 'For example: A blender can contain milk, tea and other ingredient steps',
+        containerSymbolLabel: 'Container Symbol (Optional)',
+        containerSymbolTip: 'Click to select preset brackets, or enter custom symbol in code field',
+        containerSelected: 'Selected:',
+        containerExample: 'Example:',
+        containerCustomMode: 'Custom Symbol Mode',
+        containerCustomDesc: 'The value entered in the "Code" field will be used as container symbol',
+        containerCustomExample: 'Example: Code input',
+        containerCustomExampleGenerated: ', generates',
+        containerCustomNote: 'Code will appear before and after contained steps',
+        descriptionOptional: 'Description (Optional)',
+        descriptionPlaceholder: 'Detailed description of the step',
+        operationFailed: 'Operation failed',
+        updateSuccess: 'Updated successfully',
+        createSuccess: 'Created successfully',
         fieldSchema: 'Field Schema',
         fieldSchemaPlaceholder: 'Enter JSON schema',
         codeTemplate: 'Code Template',
@@ -1060,6 +1146,219 @@ const en = {
         yes: 'Yes',
         no: 'No',
         oneClickCopyToAll: 'One-Click Copy to All'
+      },
+      orderConfig: {
+        title: 'Order Configuration',
+        description: 'Configure order channels and settings for your organization',
+
+        // Channel management module
+        channelManagementTitle: 'Channel Management',
+        channelManagementDesc: 'Manage order channels for your organization, supporting both system preset and custom channels',
+
+        createSource: 'Create Order Channel',
+        editSource: 'Edit Order Channel',
+        deleteConfirm: 'Are you sure you want to delete this order channel?',
+        deleteWarning: 'This action cannot be undone',
+
+        // Table columns
+        sourceType: 'Channel Type',
+        sourceName: 'Channel Name',
+        descriptionColumn: 'Description',
+        displayOrder: 'Display Order',
+        status: 'Status',
+        createdAt: 'Created At',
+        actions: 'Actions',
+
+        // Status
+        active: 'Active',
+        inactive: 'Inactive',
+
+        // Form labels
+        selectSourceType: 'Select channel type',
+        sourceNamePlaceholder: 'Enter channel name',
+        descriptionLabel: 'Description',
+        descriptionPlaceholder: 'Enter description (optional)',
+        displayOrderPlaceholder: 'Enter display order',
+
+        // Validations
+        sourceTypeRequired: 'Please select channel type',
+        sourceNameRequired: 'Please enter channel name',
+        sourceNameMinLength: 'Channel name must be at least 2 characters',
+        sourceNameMaxLength: 'Channel name cannot exceed 100 characters',
+        displayOrderRequired: 'Please enter display order',
+        selectOrgRequired: 'Please select an organization first',
+
+        // Messages
+        createSuccess: 'Order channel created successfully',
+        updateSuccess: 'Order channel updated successfully',
+        deleteSuccess: 'Order channel deleted successfully',
+        createFailed: 'Failed to create order channel',
+        updateFailed: 'Failed to update order channel',
+        deleteFailed: 'Failed to delete order channel',
+        loadFailed: 'Failed to load order channels',
+
+        // Actions
+        edit: 'Edit',
+        delete: 'Delete',
+        refresh: 'Refresh',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        managePricing: 'Manage Pricing',
+
+        // Empty state
+        empty: 'No order channels yet',
+
+        // System preset tag
+        systemPreset: 'System Preset',
+
+        // Search and pagination
+        search: 'Search by channel type or name...',
+        total: 'Total',
+        items: 'items',
+
+        // Pricing management module
+        pricingManagementTitle: 'Pricing Management',
+        pricingManagementDesc: 'Set differentiated pricing for different order channels',
+        pricingManagement: 'Channel Pricing Management',
+        selectChannel: 'Select Order Channel',
+        selectChannelPlaceholder: 'Please select an order channel',
+        selectChannelFirst: 'Please select an order channel first',
+        selectedChannel: 'Current Selected Channel',
+        loadChannelsFailed: 'Failed to load order channels',
+        loadPricesFailed: 'Failed to load pricing configuration',
+
+        // Pricing item management
+        itemId: 'Item ID',
+        itemIdPlaceholder: 'Enter the ID of the menu item/addon/combo',
+        itemType: 'Item Type',
+        item: 'Menu Item',
+        addon: 'Addon',
+        combo: 'Combo',
+        items: 'Menu Items',
+        addons: 'Addons',
+        combos: 'Combos',
+
+        // Pricing strategies
+        strategy: 'Pricing Strategy',
+        percentage: 'Percentage',
+        fixed: 'Fixed Difference',
+        absolute: 'Absolute Price',
+        absolutePrice: 'Absolute Price',
+        fixedPrice: 'Fixed Difference',
+        percentagePrice: 'Percentage',
+        price: 'Price',
+        pricePlaceholder: 'Enter the product price',
+        priceDiff: 'Price Difference',
+        priceDiffPlaceholder: 'Enter price difference (can be negative)',
+        percentagePlaceholder: 'Enter percentage (e.g., 10 means 10% increase)',
+        noPricesWarning: 'Please add at least one price configuration',
+        applyAll: 'Save All Changes',
+        modified: 'Modified',
+        noChanges: 'No changes',
+        
+        // Batch pricing tool
+        batchPricingTool: 'Batch Pricing Tool',
+        pricingMethod: 'Pricing Method',
+        selectPricingMethod: 'Select pricing method',
+        percentageDiscount: 'Percentage Discount',
+        adjustmentAmount: 'Amount Adjustment',
+        discountPercentage: 'Discount Percentage',
+        adjustmentAmountLabel: 'Adjustment Amount',
+        percentagePlaceholderShort: 'e.g: -10',
+        adjustmentPlaceholder: 'e.g: -5 or +3',
+        applyToAll: 'Apply to All',
+        reset: 'Reset',
+        preview: 'Preview',
+        originalPrice: 'Original Price',
+        finalPrice: 'Final Price',
+        fixedPriceLabel: 'Fixed Price',
+        
+        // Single item edit
+        editPrice: 'Edit Price',
+        setNewPrice: 'Set New Price',
+        priceChange: 'Price Change',
+        noChange: 'No Change',
+        priceUpdated: 'Price Updated',
+        enterPrice: 'Enter price',
+
+        // Custom option pricing
+        customOptionPricing: 'Custom Option Pricing',
+        customOption: 'Custom Option',
+        customOptionGroup: 'Custom Option Group',
+        optionGroup: 'Option Group',
+        optionName: 'Option Name',
+        defaultPrice: 'Default Price',
+        itemLevelPrice: 'Item-Level Price',
+        channelPrice: 'Channel Price',
+        priceSource: 'Price Source',
+        pricePriority: 'Price Priority',
+        setChannelPrice: 'Set Channel Price',
+        deleteChannelPrice: 'Delete Channel Price',
+        customOptionPrices: 'Custom Option Prices',
+        viewCustomOptions: 'View Custom Options',
+        hideCustomOptions: 'Hide Custom Options',
+        noCustomOptions: 'No custom options associated with this item',
+        customOptionPricingTip: 'Price priority: Channel Price > Item-Level Price > Default Price',
+        saveOptionPrices: 'Save Option Prices',
+        newChannelPrice: 'New Channel Price',
+        currentChannelPrice: 'Current Channel Price',
+        notSet: 'Not Set',
+        deleteConfirmTitle: 'Confirm Delete',
+        deleteCustomOptionPriceConfirm: 'Are you sure you want to delete this custom option channel price?',
+        saveCustomOptionPricesSuccess: 'Successfully saved {{count}} custom option prices',
+        saveCustomOptionPricesFailed: 'Failed to save custom option prices',
+        deleteCustomOptionPriceSuccess: 'Delete successful',
+        deleteCustomOptionPriceFailed: 'Delete failed',
+        loadCustomOptionPricesFailed: 'Failed to load custom option prices',
+        priceSourceChannel: 'Channel Pricing',
+        priceSourceItem: 'Item Pricing',
+        priceSourceDefault: 'Default Price',
+        noCustomOptionsData: 'No pricing data for custom options of this item',
+        noModifiersConfigured: 'This item has no modifiers configured',
+        pleaseConfigureModifiersFirst: 'Please configure modifier groups and options for this item in Item Management first',
+        
+        // Item pricing modal
+        itemPricingDetail: 'Item Pricing Detail',
+        itemBasePrice: 'Item Base Price',
+        itemBasePriceTip: 'Set the base price for this item in this channel, leave empty to use default price',
+        itemPriceModified: 'Item price has been modified, click save button to apply changes',
+        customOptionPricingDesc: 'Set the price for custom options of this item in this channel',
+        unsavedChanges: 'You have unsaved changes',
+        pendingSave: 'Pending Save',
+        batchPricingApplied: 'Batch pricing applied',
+        enterPercentage: 'Please enter percentage',
+        enterAdjustment: 'Please enter adjustment amount'
+      },
+      menuSync: {
+        title: 'Menu Sync',
+        categoryManagement: 'Category Management',
+        categoryManagementTip: 'Categories will be displayed on Uber in the order shown here. To hide items, remove them from all categories. If no categories are configured, the menu will not be displayed on Uber.',
+        itemConfig: 'Item Configuration',
+        modifierConfig: 'Modifier Configuration',
+        noCategoriesAdded: 'No categories have been added to this menu. Please select and add categories from below.',
+        categoriesOfMenu: 'Menu Categories',
+        itemsConfigured: '{{count}} items configured',
+        systemCategory: 'System Category',
+        moveUp: 'Move Up',
+        moveDown: 'Move Down',
+        configItems: 'Configure Items',
+        deleteMenu: 'Delete Menu',
+        deleteMenuConfirm: 'Delete Menu Configuration',
+        deleteMenuConfirmDesc: 'Are you sure you want to delete the "{{name}}" menu configuration?',
+        deleteMenuNote: 'Note: This operation only deletes the menu configuration in the database and will not automatically sync to Uber. To sync the deletion, please manually click the "Sync to Uber" button after deletion.',
+        confirmDelete: 'Confirm Delete',
+        businessHoursSetting: 'Business Hours',
+        menuName: 'Menu Name',
+        menuNamePlaceholder: 'e.g. Breakfast Menu, Lunch Menu, Dinner Menu',
+        businessHours: 'Business Hours (Monday to Sunday)',
+        rest: 'Closed',
+        startTime: 'Start',
+        endTime: 'End',
+        addTimeSlot: 'Add',
+        createMenu: 'Create Menu',
+        editMenu: 'Edit Menu',
+        editMenuInfo: 'Edit Menu Information',
+        newMenu: 'New Menu'
       }
     }
   }

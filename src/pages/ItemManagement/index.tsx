@@ -1,31 +1,36 @@
 import React, { useState, useEffect } from 'react'
-import { 
-  Button, 
-  Card, 
-  Table, 
-  Space, 
-  Typography, 
-  Tag, 
-  Modal, 
-  Form, 
-  Input, 
-  InputNumber, 
-  Select, 
+import {
+  Button,
+  Card,
+  Table,
+  Space,
+  Typography,
+  Tag,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Select,
   message,
   Row,
   Col,
   Divider,
-  TreeSelect
+  TreeSelect,
+  Upload,
+  Image
 } from 'antd'
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
+import type { RcFile } from 'antd/es/upload/interface'
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   SearchOutlined,
-  ReloadOutlined 
+  ReloadOutlined,
+  LoadingOutlined,
+  PictureOutlined
 } from '@ant-design/icons'
 import { useAuthContext } from '../../auth/AuthProvider'
-import { 
+import {
   itemManagementService,
   type Item,
   type Category,
@@ -33,6 +38,8 @@ import {
   type UpdateItemPayload,
   type PaginatedResponse
 } from '../../services/item-management'
+import { formatPrice, fromMinorUnit } from '../../utils/priceConverter'
+import { getCurrencySymbol } from '../../config/currencyConfig'
 
 const { Title, Text } = Typography
 const { Option } = Select
@@ -40,9 +47,24 @@ const { Option } = Select
 interface ItemFormData {
   name: string
   description?: string
-  price: number
+  basePrice: number
   categoryId?: string
-  status: 'ACTIVE' | 'INACTIVE' | 'DRAFT'
+  isActive: boolean
+}
+
+// 图片上传前验证
+const beforeUpload = (file: RcFile): boolean | string => {
+  const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+  if (!isValidType) {
+    message.error('只支持 JPG、PNG、WebP 格式的图片')
+    return Upload.LIST_IGNORE
+  }
+  const isLt5M = file.size / 1024 / 1024 < 5
+  if (!isLt5M) {
+    message.error('图片大小不能超过 5MB')
+    return Upload.LIST_IGNORE
+  }
+  return true
 }
 
 const ItemManagement: React.FC = () => {
@@ -65,6 +87,10 @@ const ItemManagement: React.FC = () => {
   
   // 搜索状态
   const [searchQuery, setSearchQuery] = useState('')
+
+  // 图片上传状态
+  const [imageUploading, setImageUploading] = useState(false)
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | undefined>(undefined)
 
   // 初始化数据
   useEffect(() => {
@@ -137,7 +163,8 @@ const ItemManagement: React.FC = () => {
   const handleCreate = () => {
     setEditingItem(null)
     form.resetFields()
-    form.setFieldsValue({ status: 'ACTIVE' })
+    form.setFieldsValue({ isActive: true })
+    setPreviewImageUrl(undefined)
     setModalVisible(true)
   }
 
@@ -147,11 +174,60 @@ const ItemManagement: React.FC = () => {
     form.setFieldsValue({
       name: item.name,
       description: item.description,
-      price: item.price,
+      basePrice: fromMinorUnit(item.basePrice), // 分 → 元
       categoryId: item.categoryId,
-      status: item.status
+      isActive: item.isActive
     })
+    setPreviewImageUrl(item.imageUrl)
     setModalVisible(true)
+  }
+
+  // 上传图片
+  const handleImageUpload = async (file: RcFile) => {
+    if (!editingItem) {
+      message.warning('请先保存商品，然后再上传图片')
+      return false
+    }
+
+    setImageUploading(true)
+    try {
+      const result = await itemManagementService.uploadItemImage(editingItem.id, file)
+      setPreviewImageUrl(result.image.url)
+      setEditingItem({ ...editingItem, imageUrl: result.image.url })
+      message.success('图片上传成功')
+      loadItems() // 刷新列表
+    } catch (error: any) {
+      console.error('Image upload failed:', error)
+      message.error(error?.response?.data?.error || '图片上传失败')
+    } finally {
+      setImageUploading(false)
+    }
+    return false // 阻止默认上传行为
+  }
+
+  // 删除图片
+  const handleImageDelete = async () => {
+    if (!editingItem) return
+
+    Modal.confirm({
+      title: '确认删除图片',
+      content: '确定要删除这张商品图片吗？',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await itemManagementService.deleteItemImage(editingItem.id)
+          setPreviewImageUrl(undefined)
+          setEditingItem({ ...editingItem, imageUrl: undefined })
+          message.success('图片删除成功')
+          loadItems() // 刷新列表
+        } catch (error: any) {
+          console.error('Image delete failed:', error)
+          message.error(error?.response?.data?.error || '图片删除失败')
+        }
+      }
+    })
   }
 
   // 删除商品
@@ -183,9 +259,9 @@ const ItemManagement: React.FC = () => {
         const updatePayload: UpdateItemPayload = {
           name: values.name,
           description: values.description,
-          price: values.price,
-          categoryId: values.categoryId,
-          status: values.status
+          basePrice: values.basePrice,
+          categoryId: values.categoryId || undefined,
+          isActive: values.isActive
         }
         await itemManagementService.updateItem(editingItem.id, updatePayload)
         message.success('商品更新成功')
@@ -194,14 +270,14 @@ const ItemManagement: React.FC = () => {
         const createPayload: CreateItemPayload = {
           name: values.name,
           description: values.description,
-          price: values.price,
-          categoryId: values.categoryId,
-          status: values.status
+          basePrice: values.basePrice,
+          categoryId: values.categoryId || '',
+          isActive: values.isActive
         }
         await itemManagementService.createItem(createPayload)
         message.success('商品创建成功')
       }
-      
+
       setModalVisible(false)
       loadItems()
     } catch (error) {
@@ -213,11 +289,32 @@ const ItemManagement: React.FC = () => {
   // 表格列定义
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
-      width: 200,
-      ellipsis: true
+      title: '图片',
+      dataIndex: 'imageUrl',
+      key: 'imageUrl',
+      width: 80,
+      render: (imageUrl: string) => imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt="商品图片"
+          width={50}
+          height={50}
+          style={{ objectFit: 'cover', borderRadius: 4 }}
+          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAfUlEQVR4nO3XsQ2AMAwAQPb/dGbAZSBQJJI7qT3xDwAA/KPVdl/l3DKz12q7r3JuGSIA"
+        />
+      ) : (
+        <div style={{
+          width: 50,
+          height: 50,
+          background: '#f5f5f5',
+          borderRadius: 4,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <PictureOutlined style={{ color: '#bbb', fontSize: 20 }} />
+        </div>
+      )
     },
     {
       title: '商品名称',
@@ -234,10 +331,10 @@ const ItemManagement: React.FC = () => {
     },
     {
       title: '价格',
-      dataIndex: 'price',
-      key: 'price',
+      dataIndex: 'basePrice',
+      key: 'basePrice',
       width: 120,
-      render: (price: number) => `¥${price.toFixed(2)}`
+      render: (basePrice: number) => formatPrice(basePrice)
     },
     {
       title: '分类',
@@ -248,22 +345,14 @@ const ItemManagement: React.FC = () => {
     },
     {
       title: '状态',
-      dataIndex: 'status',
-      key: 'status',
+      dataIndex: 'isActive',
+      key: 'isActive',
       width: 100,
-      render: (status: string) => {
-        const colors = {
-          ACTIVE: 'green',
-          INACTIVE: 'red',
-          DRAFT: 'orange'
-        }
-        const labels = {
-          ACTIVE: '活跃',
-          INACTIVE: '停用',
-          DRAFT: '草稿'
-        }
-        return <Tag color={colors[status as keyof typeof colors]}>{labels[status as keyof typeof labels]}</Tag>
-      }
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'green' : 'red'}>
+          {isActive ? '活跃' : '停用'}
+        </Tag>
+      )
     },
     {
       title: '创建时间',
@@ -408,7 +497,7 @@ const ItemManagement: React.FC = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
-                name="price"
+                name="basePrice"
                 label="价格"
                 rules={[
                   { required: true, message: '请输入商品价格' },
@@ -419,21 +508,20 @@ const ItemManagement: React.FC = () => {
                   style={{ width: '100%' }}
                   placeholder="0.00"
                   precision={2}
-                  formatter={value => `¥ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                  parser={value => value?.replace(/¥\s?|(,*)/g, '') as any}
+                  prefix={getCurrencySymbol()}
                 />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item
-                name="status"
+                name="isActive"
                 label="状态"
                 rules={[{ required: true, message: '请选择商品状态' }]}
+                valuePropName="checked"
               >
                 <Select placeholder="请选择状态">
-                  <Option value="ACTIVE">活跃</Option>
-                  <Option value="INACTIVE">停用</Option>
-                  <Option value="DRAFT">草稿</Option>
+                  <Option value={true}>活跃</Option>
+                  <Option value={false}>停用</Option>
                 </Select>
               </Form.Item>
             </Col>
@@ -451,6 +539,81 @@ const ItemManagement: React.FC = () => {
               treeDefaultExpandAll
             />
           </Form.Item>
+
+          {/* 图片上传 - 仅在编辑模式显示 */}
+          {editingItem && (
+            <Form.Item label="商品图片">
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
+                {previewImageUrl ? (
+                  <div style={{ position: 'relative' }}>
+                    <Image
+                      src={previewImageUrl}
+                      alt="商品图片"
+                      width={120}
+                      height={120}
+                      style={{ objectFit: 'cover', borderRadius: 8 }}
+                    />
+                    <Button
+                      type="primary"
+                      danger
+                      size="small"
+                      icon={<DeleteOutlined />}
+                      onClick={handleImageDelete}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <Upload
+                    accept=".jpg,.jpeg,.png,.webp"
+                    showUploadList={false}
+                    beforeUpload={beforeUpload}
+                    customRequest={({ file }) => handleImageUpload(file as RcFile)}
+                    disabled={imageUploading}
+                  >
+                    <div style={{
+                      width: 120,
+                      height: 120,
+                      border: '1px dashed #d9d9d9',
+                      borderRadius: 8,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      background: '#fafafa'
+                    }}>
+                      {imageUploading ? <LoadingOutlined /> : <PlusOutlined />}
+                      <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+                        {imageUploading ? '上传中...' : '上传图片'}
+                      </div>
+                    </div>
+                  </Upload>
+                )}
+                <div style={{ fontSize: 12, color: '#999' }}>
+                  <div>支持 JPG、PNG、WebP 格式</div>
+                  <div>图片大小不超过 5MB</div>
+                  <div>建议尺寸 800x800 像素</div>
+                </div>
+              </div>
+            </Form.Item>
+          )}
+
+          {!editingItem && (
+            <div style={{
+              padding: '12px 16px',
+              background: '#f6f6f6',
+              borderRadius: 6,
+              marginBottom: 16,
+              fontSize: 13,
+              color: '#666'
+            }}>
+              💡 提示：保存商品后可以上传图片
+            </div>
+          )}
 
           <Divider />
 

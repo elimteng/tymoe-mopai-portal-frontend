@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { getStepTypes, deleteStepType } from '@/services/recipe'
 import type { StepType } from '@/services/recipe'
 import type { ColumnsType } from 'antd/es/table'
-import StepTypeFormModalSimple from './StepTypeFormModalSimple'
+import StepTypeFormModalEnhanced from './StepTypeFormModalEnhanced'
 
 const StepTypeManagement: React.FC = () => {
   const { t } = useTranslation()
@@ -176,9 +176,10 @@ const StepTypeManagement: React.FC = () => {
         </Button>
       </div>
 
-      <StepTypeFormModalSimple
+      <StepTypeFormModalEnhanced
         visible={modalVisible}
         stepType={editingStepType}
+        existingStepTypes={stepTypes}
         onClose={handleModalClose}
         onSuccess={handleModalSuccess}
       />

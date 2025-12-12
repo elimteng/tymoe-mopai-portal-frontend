@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, Tabs, Select, Space, Typography, message, Spin, Collapse } from 'antd'
 import { BookOutlined, SettingOutlined, QuestionCircleOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
-import RecipeManagementByAttribute from './RecipeManagementByAttribute'
+import RecipeManagementByModifiers from './RecipeManagementByModifiers'
 import StepTypeManagement from './StepTypeManagement'
 import { getItems, type Item } from '@/services/item-management'
 
@@ -10,7 +10,7 @@ const { Title, Text } = Typography
 
 const RecipeGuide: React.FC = () => {
   const { t } = useTranslation()
-  const [activeTab, setActiveTab] = useState('recipesByAttribute')
+  const [activeTab, setActiveTab] = useState('recipesByModifier')
   const [items, setItems] = useState<Item[]>([])
   const [selectedItemId, setSelectedItemId] = useState<string>()
   const [loading, setLoading] = useState(false)
@@ -39,14 +39,14 @@ const RecipeGuide: React.FC = () => {
 
   const tabItems = [
     {
-      key: 'recipesByAttribute',
+      key: 'recipesByModifier',
       label: (
         <span>
           <BookOutlined />
           {t('pages.recipeGuide.recipeManagement')}
         </span>
       ),
-      children: <RecipeManagementByAttribute itemId={selectedItemId} />
+      children: <RecipeManagementByModifiers itemId={selectedItemId} />
     },
     {
       key: 'stepTypes',
@@ -72,7 +72,7 @@ const RecipeGuide: React.FC = () => {
           </Space>
         }
         extra={
-          activeTab === 'recipesByAttribute' && (
+          activeTab === 'recipesByModifier' && (
             <Space>
               <Text>{t('pages.recipeGuide.selectItem')}:</Text>
               <Select

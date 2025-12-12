@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Card,
   Button,
@@ -13,7 +13,7 @@ import {
   Tag,
   Popconfirm,
   Tooltip,
-  Tabs
+  Divider
 } from 'antd'
 import {
   PlusOutlined,
@@ -22,7 +22,8 @@ import {
   ReloadOutlined,
   StarOutlined,
   StarFilled,
-  EyeOutlined
+  EyeOutlined,
+  PrinterOutlined
 } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { httpService } from '@/services/http'
@@ -34,15 +35,13 @@ import {
   deleteReceiptTemplate,
   setDefaultReceiptTemplate,
   toggleReceiptTemplateActive,
+  generateTestPrint,
   type ReceiptTemplate,
   type CreateReceiptTemplateRequest,
   type UpdateReceiptTemplateRequest
 } from '@/services/receipt-template'
-import TemplateConfigForm from './TemplateConfigForm'
-import SimpleConfigForm from './SimpleConfigForm'
 import SimpleTemplatePreview from './SimpleTemplatePreview'
-import PresetSelector, { type TemplatePreset } from './PresetSelector'
-import StyleSelector from './StyleSelector'
+import ModernMinimalConfigForm from './ModernMinimalConfigForm'
 
 const { TextArea } = Input
 
@@ -62,12 +61,12 @@ const ReceiptTemplateManagement: React.FC = () => {
   const [isPreviewVisible, setIsPreviewVisible] = useState(false)
   const [editingTemplate, setEditingTemplate] = useState<ReceiptTemplate | null>(null)
   const [previewTemplate, setPreviewTemplate] = useState<ReceiptTemplate | null>(null)
-  const [selectedPreset, setSelectedPreset] = useState<TemplatePreset | null>(null)
-  const [currentStep, setCurrentStep] = useState(0) // 0: 选择预设, 1: 配置详情
-  const [isStyleSelectorVisible, setIsStyleSelectorVisible] = useState(false)
-  const [selectedStyleId, setSelectedStyleId] = useState<string | null>(null)
-  const [selectedPaperWidth, setSelectedPaperWidth] = useState<number | null>(null)
   const [form] = Form.useForm()
+
+  // 稳定的 config 更新回调（防止 ModernMinimalConfigForm 重复触发）
+  const handleConfigChange = useCallback((config: any) => {
+    form.setFieldValue('config', config)
+  }, [form])
 
   // 加载模板列表
   const loadTemplates = async () => {
@@ -83,28 +82,36 @@ const ReceiptTemplateManagement: React.FC = () => {
         return !name.includes('(POS)') && !name.includes('(Kiosk)') && !name.includes('(Web)') &&
                !name.includes('- POS') && !name.includes('- KIOSK') && !name.includes('- WEB')
       })
-      
-      // 2. 为每个主模板找到对应的子版本
-      const templatesWithChildren = mainTemplates.map(mainTemplate => {
-        const mainName = typeof mainTemplate.name === 'string' ? mainTemplate.name : mainTemplate.name['zh-CN']
-        
-        // 查找对应的 POS/KIOSK/WEB 版本
-        const children = response.data.filter(template => {
-          const name = typeof template.name === 'string' ? template.name : template.name['zh-CN']
-          // 匹配 "主模板名 (POS)" 或 "主模板名 - POS" 格式
-          return (name.includes(mainName) && template.id !== mainTemplate.id) &&
-                 (name.includes('(POS)') || name.includes('(Kiosk)') || name.includes('(Web)') ||
-                  name.includes('- POS') || name.includes('- KIOSK') || name.includes('- WEB'))
+
+      // 2. 如果有主模板,则分组显示;否则直接显示所有模板
+      let templatesWithChildren
+      if (mainTemplates.length > 0) {
+        // 为每个主模板找到对应的子版本
+        templatesWithChildren = mainTemplates.map(mainTemplate => {
+          const mainName = typeof mainTemplate.name === 'string' ? mainTemplate.name : mainTemplate.name['zh-CN']
+
+          // 查找对应的 POS/KIOSK/WEB 版本
+          const children = response.data.filter(template => {
+            const name = typeof template.name === 'string' ? template.name : template.name['zh-CN']
+            // 匹配 "主模板名 (POS)" 或 "主模板名 - POS" 格式
+            return (name.includes(mainName) && template.id !== mainTemplate.id) &&
+                   (name.includes('(POS)') || name.includes('(Kiosk)') || name.includes('(Web)') ||
+                    name.includes('- POS') || name.includes('- KIOSK') || name.includes('- WEB'))
+          })
+
+          return {
+            ...mainTemplate,
+            children: children.length > 0 ? children : undefined
+          }
         })
-        
-        return {
-          ...mainTemplate,
-          children: children.length > 0 ? children : undefined
-        }
-      })
-      
+      } else {
+        // 没有主模板,直接显示所有模板
+        console.log('ℹ️ 没有找到主模板,直接显示所有模板')
+        templatesWithChildren = response.data
+      }
+
       setTemplates(templatesWithChildren)
-      message.success(t('pages.receiptTemplate.loadSuccess', { count: mainTemplates.length }))
+      message.success(t('pages.receiptTemplate.loadSuccess', { count: templatesWithChildren.length }))
     } catch (error: any) {
       console.error('加载小票模板失败:', error)
       
@@ -128,72 +135,76 @@ const ReceiptTemplateManagement: React.FC = () => {
   // 打开创建/编辑对话框
   const handleOpenModal = (template?: ReceiptTemplate) => {
     setEditingTemplate(template || null)
+
+    // 默认配置
+    const defaultConfig = {
+      styleId: 'modern-minimal',
+      language: i18n.language || 'zh-CN',
+      printDensity: 'compact',
+      merchant: {
+        showAddress: true,
+        showPhone: true,
+        showTaxNumber: false,
+        showWebsite: false,
+      },
+      orderInfo: {
+        fields: ['orderNumber'],
+      },
+      items: {
+        showAttributes: true,
+        showAddons: true,
+        showNotes: true,
+      },
+      amounts: {
+        showSubtotal: true,
+        showDiscount: true,
+        showTax: false,
+        showTotal: true,
+      },
+      payment: {
+        showPaymentMethod: true,
+        showPaymentTime: true,
+        showPaymentStatus: true,
+      },
+      customMessage: {
+        'zh-CN': '感谢您的光临',
+        'en': 'Thank you!',
+        'zh-TW': '感謝您的光臨',
+      },
+      qrCode: {
+        enabled: false,
+        urlTemplate: 'https://example.com/order/{orderId}',
+        sizeRatio: 0.7,
+        errorCorrection: 'M',
+        alignment: 'center',
+      },
+    }
+
     if (template) {
       // 编辑模式：直接进入配置步骤
-      setCurrentStep(1)
-      
       form.setFieldsValue({
         name: getLocalizedText(template.name, i18n.language),
         description: getLocalizedText(template.description, i18n.language),
         paperWidth: template.paperWidth,
         isDefault: template.isDefault,
-        config: template.config
+        config: template.config || defaultConfig
       })
     } else {
-      // 创建模式：从选择预设开始
-      setCurrentStep(0)
-      setSelectedPreset(null)
+      // 创建模式：直接进入配置步骤（默认使用现代简约模板）
       form.resetFields()
+      form.setFieldsValue({
+        paperWidth: 58,
+        isDefault: false,
+        config: defaultConfig
+      })
     }
     setIsModalVisible(true)
-  }
-
-  // 选择预设模板
-  const handleSelectPreset = (preset: TemplatePreset) => {
-    setSelectedPreset(preset)
-    
-    // 将预设配置填入表单
-    form.setFieldsValue({
-      name: getLocalizedText(preset.name, i18n.language),
-      description: getLocalizedText(preset.description, i18n.language),
-      paperWidth: preset.paperWidth,
-      isDefault: false,
-      config: preset.config
-    })
-  }
-
-  // 下一步：从预设选择到配置详情
-  const handleNextStep = () => {
-    if (!selectedPreset) {
-      message.warning('请先选择一个预设模板')
-      return
-    }
-    setCurrentStep(1)
-  }
-
-  // 上一步：返回预设选择或样式选择
-  const handlePrevStep = () => {
-    if (selectedStyleId) {
-      // 从样式创建：关闭配置对话框，重新打开样式选择器
-      setIsModalVisible(false)
-      setSelectedStyleId(null)
-      setSelectedPaperWidth(null)
-      form.resetFields()
-      setIsStyleSelectorVisible(true)
-    } else {
-      // 从预设创建：返回预设选择
-      setCurrentStep(0)
-    }
   }
 
   // 关闭对话框
   const handleCloseModal = () => {
     setIsModalVisible(false)
     setEditingTemplate(null)
-    setSelectedPreset(null)
-    setSelectedStyleId('')
-    setSelectedPaperWidth(80)
-    setCurrentStep(0)
     form.resetFields()
   }
 
@@ -201,11 +212,17 @@ const ReceiptTemplateManagement: React.FC = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields()
-      
+
       console.log('📋 Form values:', JSON.stringify(values, null, 2))
-      
+
+      // 确保 config 字段存在
+      if (!values.config) {
+        message.error('模板配置不完整，请检查表单')
+        return
+      }
+
       if (editingTemplate) {
-        // 更新模板（会同步更新所有3个版本）
+        // 更新模板
         const updateData: UpdateReceiptTemplateRequest = {
           name: values.name,
           description: values.description,
@@ -216,30 +233,8 @@ const ReceiptTemplateManagement: React.FC = () => {
         console.log('📤 Updating template:', JSON.stringify(updateData, null, 2))
         await updateReceiptTemplate(editingTemplate.id, updateData)
         message.success(t('pages.receiptTemplate.updateSuccess'))
-      } else if (selectedStyleId) {
-        // 从样式创建模板（后端创建3个版本）
-        // 注意：名称和描述由后端根据样式自动生成，不需要传递
-        const response = await httpService.post<{
-          success: boolean
-          data: any[]
-          message?: string
-        }>(
-          '/api/order/v1/receipt-templates/create-all-sources',
-          {
-            styleId: selectedStyleId,
-            paperWidth: values.paperWidth || selectedPaperWidth,
-            language: i18n.language || 'zh-CN'
-          }
-        )
-        
-        if (response.data.success) {
-          const templateCount = response.data.data.length
-          message.success(`成功创建模板！共 ${templateCount} 个版本`)
-        } else {
-          throw new Error(response.data.message || '创建模板失败')
-        }
       } else {
-        // 直接创建单个模板（旧方式，保留兼容）
+        // 创建单个模板（现代简约模板工作流）
         const createData: CreateReceiptTemplateRequest = {
           name: values.name,
           description: values.description,
@@ -248,10 +243,11 @@ const ReceiptTemplateManagement: React.FC = () => {
           config: values.config
         }
         console.log('📤 Creating template:', JSON.stringify(createData, null, 2))
+        console.log('✅ Sending to API - only once')
         await createReceiptTemplate(createData)
         message.success(t('pages.receiptTemplate.createSuccess'))
       }
-      
+
       handleCloseModal()
       loadTemplates()
     } catch (error: any) {
@@ -354,6 +350,17 @@ const ReceiptTemplateManagement: React.FC = () => {
     setIsPreviewVisible(true)
   }
 
+  // 测试打印 - 生成并下载 ESC/POS 文件
+  const handleTestPrint = async (templateId: string) => {
+    try {
+      message.loading({ content: t('pages.receiptTemplate.generatingPrint'), key: 'testPrint' })
+      await generateTestPrint(templateId)
+      message.success({ content: t('pages.receiptTemplate.printGenerated'), key: 'testPrint', duration: 2 })
+    } catch (error: any) {
+      message.error({ content: t('pages.receiptTemplate.printFailed') + ': ' + error.message, key: 'testPrint' })
+    }
+  }
+
   // 表格列定义
   const columns: ColumnsType<ReceiptTemplate> = [
     {
@@ -425,6 +432,13 @@ const ReceiptTemplateManagement: React.FC = () => {
               onClick={() => handlePreview(record)}
             />
           </Tooltip>
+          <Tooltip title={t('pages.receiptTemplate.testPrint')}>
+            <Button
+              type="text"
+              icon={<PrinterOutlined />}
+              onClick={() => handleTestPrint(record.id)}
+            />
+          </Tooltip>
           <Tooltip title={t('pages.receiptTemplate.edit')}>
             <Button
               type="text"
@@ -475,7 +489,7 @@ const ReceiptTemplateManagement: React.FC = () => {
             <Button icon={<ReloadOutlined />} onClick={loadTemplates}>
               {t('pages.receiptTemplate.refresh')}
             </Button>
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsStyleSelectorVisible(true)}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => handleOpenModal()}>
               {t('pages.receiptTemplate.create')}
             </Button>
           </Space>
@@ -561,103 +575,54 @@ const ReceiptTemplateManagement: React.FC = () => {
         onCancel={handleCloseModal}
         width={1200}
         footer={
-          editingTemplate || currentStep === 1 ? (
-            <Space>
-              {!editingTemplate && (
-                <Button onClick={handlePrevStep}>上一步</Button>
-              )}
-              <Button onClick={handleCloseModal}>{t('pages.receiptTemplate.cancel')}</Button>
-              <Button type="primary" onClick={handleSave}>
-                {t('pages.receiptTemplate.save')}
-              </Button>
-            </Space>
-          ) : (
-            <Space>
-              <Button onClick={handleCloseModal}>{t('pages.receiptTemplate.cancel')}</Button>
-              <Button type="primary" onClick={handleNextStep}>
-                下一步
-              </Button>
-            </Space>
-          )
+          <Space>
+            <Button onClick={handleCloseModal}>{t('pages.receiptTemplate.cancel')}</Button>
+            <Button type="primary" onClick={handleSave}>
+              {t('pages.receiptTemplate.save')}
+            </Button>
+          </Space>
         }
       >
-        {!editingTemplate && currentStep === 0 ? (
-          /* 步骤1: 选择预设模板 */
-          <PresetSelector
-            onSelect={handleSelectPreset}
-            selectedPresetId={selectedPreset?.id}
-          />
-        ) : (
-          /* 步骤2: 配置详情和预览 */
-          <div style={{ display: 'flex', gap: '24px' }}>
+        {/* 直接显示配置表单（跳过选择步骤） */}
+        <div style={{ display: 'flex', gap: '24px' }}>
             {/* 左侧：配置表单 */}
             <div style={{ flex: 1 }}>
               <Form form={form} layout="vertical">
-                {/* 从样式创建时显示提示，编辑时显示名称和描述 */}
-                {selectedStyleId && !editingTemplate ? (
-                  <div style={{ 
-                    padding: '12px 16px', 
-                    backgroundColor: '#e6f7ff', 
-                    border: '1px solid #91d5ff',
-                    borderRadius: '4px',
-                    marginBottom: '16px'
-                  }}>
-                    <div style={{ fontWeight: 500, marginBottom: '4px' }}>📋 模板信息</div>
-                    <div style={{ fontSize: '13px', color: '#666' }}>
-                      模板名称和描述将根据所选样式自动生成，创建后会生成 POS、KIOSK、WEB 三个版本
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Form.Item
-                      name="name"
-                      label={t('pages.receiptTemplate.templateName')}
-                      rules={[{ required: true, message: t('pages.receiptTemplate.nameRequired') }]}
-                    >
-                      <Input placeholder={t('pages.receiptTemplate.namePlaceholder')} />
-                    </Form.Item>
-
-                    <Form.Item name="description" label={t('pages.receiptTemplate.description')}>
-                      <TextArea
-                        rows={2}
-                        placeholder={t('pages.receiptTemplate.descriptionPlaceholder')}
-                      />
-                    </Form.Item>
-                  </>
-                )}
-
+                {/* 模板名称和描述 */}
                 <Form.Item
-                  name="paperWidth"
-                  label={t('pages.receiptTemplate.paperWidth')}
-                  rules={[{ required: true, message: t('pages.receiptTemplate.paperWidthRequired') }]}
+                  name="name"
+                  label={t('pages.receiptTemplate.templateName')}
+                  rules={[{ required: true, message: t('pages.receiptTemplate.nameRequired') }]}
                 >
-                  <InputNumber
-                    min={58}
-                    max={80}
-                    addonAfter="mm"
-                    style={{ width: '100%' }}
-                    disabled={!!selectedStyleId && !editingTemplate}
+                  <Input placeholder={t('pages.receiptTemplate.namePlaceholder')} />
+                </Form.Item>
+
+                <Form.Item name="description" label={t('pages.receiptTemplate.description')}>
+                  <TextArea
+                    rows={2}
+                    placeholder={t('pages.receiptTemplate.descriptionPlaceholder')}
                   />
                 </Form.Item>
 
-                {!selectedStyleId && (
-                  <Form.Item name="isDefault" label={t('pages.receiptTemplate.setAsDefault')} valuePropName="checked">
-                    <Switch />
-                  </Form.Item>
-                )}
+                {/* 隐藏纸张宽度字段，但保留在表单中（使用默认值58） */}
+                <Form.Item name="paperWidth" style={{ display: 'none' }}>
+                  <InputNumber />
+                </Form.Item>
 
-                <Tabs
-                  items={[
-                    {
-                      key: 'config',
-                      label: t('pages.receiptTemplate.templateConfig'),
-                      children: selectedStyleId && !editingTemplate ? (
-                        <SimpleConfigForm form={form} />
-                      ) : (
-                        <TemplateConfigForm form={form} />
-                      )
-                    }
-                  ]}
+                {/* 隐藏配置字段，通过 ModernMinimalConfigForm 更新 */}
+                <Form.Item name="config" style={{ display: 'none' }}>
+                  <div />
+                </Form.Item>
+
+                <Form.Item name="isDefault" label={t('pages.receiptTemplate.setAsDefault')} valuePropName="checked">
+                  <Switch />
+                </Form.Item>
+
+                {/* 现代简约模板配置 */}
+                <Divider orientation="left">现代简约模板配置</Divider>
+                <ModernMinimalConfigForm
+                  initialConfig={editingTemplate?.config || form.getFieldValue('config')}
+                  onChange={handleConfigChange}
                 />
               </Form>
             </div>
@@ -700,8 +665,7 @@ const ReceiptTemplateManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
+        </div>
       </Modal>
 
       {/* 预览对话框 */}
@@ -715,37 +679,6 @@ const ReceiptTemplateManagement: React.FC = () => {
         {previewTemplate && <SimpleTemplatePreview template={previewTemplate} />}
       </Modal>
 
-      {/* 样式选择器对话框 */}
-      <Modal
-        title="创建小票模板"
-        open={isStyleSelectorVisible}
-        onCancel={() => setIsStyleSelectorVisible(false)}
-        footer={null}
-        width={1000}
-      >
-        <StyleSelector
-          onComplete={() => {
-            setIsStyleSelectorVisible(false)
-            loadTemplates()
-          }}
-          onStyleSelected={(styleId, paperWidth) => {
-            // 保存选择的样式信息
-            setSelectedStyleId(styleId)
-            setSelectedPaperWidth(paperWidth)
-            // 关闭样式选择器
-            setIsStyleSelectorVisible(false)
-            // 初始化表单（设置纸张宽度）
-            form.setFieldsValue({
-              paperWidth: paperWidth,
-              isDefault: false
-            })
-            // 打开配置表单
-            setIsModalVisible(true)
-            setEditingTemplate(null) // 新建模式
-            setCurrentStep(1) // 跳过预设选择，直接进入配置
-          }}
-        />
-      </Modal>
     </div>
   )
 }

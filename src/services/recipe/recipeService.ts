@@ -3,34 +3,33 @@ import type {
   Recipe,
   CreateRecipeRequest,
   UpdateRecipeRequest,
-  AddStepRequest,
-  UpdateStepRequest,
-  AttributeVariant,
-  CreateVariantRequest,
-  AddOverrideRequest,
-  CalculateRecipeRequest,
-  CalculateRecipeResponse,
+  UpdateRecipeStepsRequest,
+  GenerateCombinationsRequest,
+  GenerateCombinationsResponse,
+  CopyRecipeRequest,
+  CopyRecipeResponse,
+  MatchRecipeRequest,
+  MatchRecipeResponse,
   StepType,
   CreateStepTypeRequest,
   CodeSuggestionRequest,
   CodeSuggestionResponse,
   EquipmentSymbol,
-  GenerateCodeRequest,
-  GenerateCodeResponse,
   ApiResponse
 } from './types'
 
-// API Base URLs
-// 注意：根据实际后端部署情况，配方API可能在以下两个路径之一：
-// - 新路径（API文档）: '/api/recipes'
-// - 旧路径（当前部署）: '/api/item-manage/v1/recipes'
-const RECIPE_API_BASE = '/api/item-manage/v1/recipes'  // 使用当前部署的路径
-const STEP_TYPE_API_BASE = '/api/item-manage/v1/step-types'
+// 从环境变量中获取 API 基础 URL，用于直接 CORS 请求
+// 支持本地开发环境，默认为本地 localhost:3000
+const API_BASE = (import.meta.env.VITE_ITEM_MANAGE_BASE as string | undefined) ?? 'http://localhost:3000/api/item-manage/v1'
+
+// API Base URLs (v2.2)
+const RECIPE_API_BASE = `${API_BASE}/recipes`
+const STEP_TYPE_API_BASE = `${API_BASE}/step-types`
 
 // ==================== 步骤类型辅助功能 ====================
 
 /**
- * 获取代码建议
+ * 获取代码建议 (v2.2)
  */
 export const getCodeSuggestions = async (data: CodeSuggestionRequest): Promise<CodeSuggestionResponse> => {
   const response = await httpService.post<ApiResponse<CodeSuggestionResponse>>(`${STEP_TYPE_API_BASE}/suggest`, data)
@@ -41,65 +40,244 @@ export const getCodeSuggestions = async (data: CodeSuggestionRequest): Promise<C
 }
 
 /**
- * 获取设备符号列表
+ * 获取设备符号列表 (v2.2)
  */
-export const getEquipmentSymbols = async (): Promise<EquipmentSymbol[]> => {
-  const response = await httpService.get<ApiResponse<EquipmentSymbol[]>>(`${STEP_TYPE_API_BASE}/equipment/symbols`)
+export const getEquipmentSymbols = async (): Promise<{ symbols: EquipmentSymbol[] }> => {
+  const response = await httpService.get<ApiResponse<{ symbols: EquipmentSymbol[] }>>(`${STEP_TYPE_API_BASE}/equipment/symbols`)
   if (!response.data.success || !response.data.data) {
     throw new Error(response.data.error?.message || '获取设备符号列表失败')
   }
   return response.data.data
 }
 
-// ==================== 配方管理 ====================
+// ==================== 配方管理 (v2.2) ====================
 
 /**
- * 创建配方
+ * 生成修饰符组合列表 (v2.2 新增)
+ */
+export const generateCombinations = async (itemId: string, data: GenerateCombinationsRequest): Promise<GenerateCombinationsResponse> => {
+  const response = await httpService.post<ApiResponse<GenerateCombinationsResponse>>(
+    `${API_BASE}/items/${itemId}/recipes/generate-combinations`,
+    data
+  )
+  
+  // 打印详细的响应数据用于调试
+  console.log('generateCombinations 响应:', response.data)
+  
+  // 处理包装格式的响应 (success/data wrapper)
+  if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || '生成组合列表失败')
+    }
+    return response.data.data
+  }
+  
+  // 处理直接返回数据的响应格式
+  if (response.data && typeof response.data === 'object' && 'combinations' in response.data) {
+    return response.data as GenerateCombinationsResponse
+  }
+  
+  // 如果响应格式不符合预期
+  console.error('意外的响应格式:', response.data)
+  throw new Error('生成组合列表失败：响应格式不正确')
+}
+
+/**
+ * 创建配方 (v2.2)
  */
 export const createRecipe = async (data: CreateRecipeRequest): Promise<Recipe> => {
-  const response = await httpService.post<ApiResponse<Recipe>>(RECIPE_API_BASE, data)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '创建配方失败')
+  console.log('📤 创建配方请求:', data)
+  
+  try {
+    const response = await httpService.post<ApiResponse<Recipe>>(RECIPE_API_BASE, data)
+    console.log('📥 创建配方响应:', response)
+    
+    // 处理包装格式的响应 (success/data wrapper)
+    if (response.data && typeof response.data === 'object') {
+      // 如果有 success 字段
+      if ('success' in response.data) {
+        if (!response.data.success) {
+          console.error('❌ 创建配方失败 (success=false):', response.data.error)
+          throw new Error(response.data.error?.message || '创建配方失败')
+        }
+        if (response.data.data) {
+          console.log('✅ 创建配方成功 (包装格式):', response.data.data)
+          return response.data.data
+        }
+      }
+      
+      // 直接返回 Recipe 对象（无包装）
+      if ('id' in response.data) {
+        console.log('✅ 创建配方成功 (直接格式):', response.data)
+        return response.data as Recipe
+      }
+    }
+    
+    console.error('❌ 创建配方响应格式不正确:', response.data)
+    throw new Error('创建配方失败：响应格式不正确')
+  } catch (error: any) {
+    console.error('❌ 创建配方异常:', error)
+    throw error
   }
-  return response.data.data
 }
 
 /**
- * 获取配方列表
+ * 获取商品的所有配方 (v2.2)
  */
-export const getRecipes = async (itemId?: string): Promise<Recipe[]> => {
-  const url = itemId ? `${RECIPE_API_BASE}?itemId=${itemId}` : RECIPE_API_BASE
-  const response = await httpService.get<ApiResponse<Recipe[]>>(url)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '获取配方列表失败')
+export const getRecipes = async (itemId: string): Promise<{ itemId: string; recipes: Recipe[]; totalRecipes: number }> => {
+  const response = await httpService.get<ApiResponse<{ itemId: string; recipes: Recipe[]; totalRecipes: number }>>(
+    `${API_BASE}/items/${itemId}/recipes`
+  )
+  
+  // 打印详细的响应数据用于调试
+  console.log('getRecipes 响应:', response.data)
+  
+  // 处理包装格式的响应 (success/data wrapper)
+  if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || '获取配方列表失败')
+    }
+    return response.data.data
   }
-  return response.data.data
+  
+  // 处理直接返回数据的响应格式
+  if (response.data && typeof response.data === 'object' && 'itemId' in response.data) {
+    return response.data as { itemId: string; recipes: Recipe[]; totalRecipes: number }
+  }
+  
+  // 如果响应格式不符合预期
+  console.error('意外的响应格式:', response.data)
+  throw new Error('获取配方列表失败：响应格式不正确')
 }
 
 /**
- * 获取配方详情
+ * 获取配方详情 (v2.2)
  */
 export const getRecipeById = async (id: string): Promise<Recipe> => {
-  const response = await httpService.get<ApiResponse<Recipe>>(`${RECIPE_API_BASE}/${id}`)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '获取配方详情失败')
+  console.log('📡 获取配方详情 - ID:', id)
+  
+  try {
+    const response = await httpService.get<ApiResponse<Recipe>>(`${RECIPE_API_BASE}/${id}`)
+    console.log('📥 配方详情响应:', response)
+    
+    // 处理包装格式的响应
+    if (response.data && typeof response.data === 'object') {
+      // 如果有 success 字段
+      if ('success' in response.data) {
+        if (!response.data.success) {
+          console.error('❌ 获取配方详情失败 (success=false):', response.data.error)
+          throw new Error(response.data.error?.message || '获取配方详情失败')
+        }
+        if (response.data.data) {
+          console.log('✅ 获取配方详情成功 (包装格式):', response.data.data)
+          return response.data.data
+        }
+      }
+      
+      // 直接返回 Recipe 对象（无包装）
+      if ('id' in response.data) {
+        console.log('✅ 获取配方详情成功 (直接格式):', response.data)
+        return response.data as Recipe
+      }
+    }
+    
+    console.error('❌ 配方详情响应格式不正确:', response.data)
+    throw new Error('获取配方详情失败：响应格式不正确')
+  } catch (error: any) {
+    console.error('❌ 获取配方详情异常:', error)
+    throw error
   }
-  return response.data.data
 }
 
 /**
- * 更新配方
+ * 更新配方 (v2.2)
  */
 export const updateRecipe = async (id: string, data: UpdateRecipeRequest): Promise<Recipe> => {
-  const response = await httpService.put<ApiResponse<Recipe>>(`${RECIPE_API_BASE}/${id}`, data)
+  console.log('📡 更新配方 - ID:', id, '数据:', data)
+  
+  try {
+    const response = await httpService.put<ApiResponse<Recipe>>(`${RECIPE_API_BASE}/${id}`, data)
+    console.log('📥 更新配方响应:', response)
+    
+    // 处理包装格式的响应
+    if (response.data && typeof response.data === 'object') {
+      // 如果有 success 字段
+      if ('success' in response.data) {
+        if (!response.data.success) {
+          console.error('❌ 更新配方失败 (success=false):', response.data.error)
+          throw new Error(response.data.error?.message || '更新配方失败')
+        }
+        if (response.data.data) {
+          console.log('✅ 更新配方成功 (包装格式):', response.data.data)
+          return response.data.data
+        }
+      }
+      
+      // 直接返回 Recipe 对象（无包装）
+      if ('id' in response.data) {
+        console.log('✅ 更新配方成功 (直接格式):', response.data)
+        return response.data as Recipe
+      }
+    }
+    
+    console.error('❌ 更新配方响应格式不正确:', response.data)
+    throw new Error('更新配方失败：响应格式不正确')
+  } catch (error: any) {
+    console.error('❌ 更新配方异常:', error)
+    throw error
+  }
+}
+
+/**
+ * 更新配方步骤 (v2.2)
+ */
+export const updateRecipeSteps = async (recipeId: string, data: UpdateRecipeStepsRequest): Promise<void> => {
+  console.log('📡 更新配方步骤 - Recipe ID:', recipeId, '步骤数据:', data)
+  
+  try {
+    const response = await httpService.put<ApiResponse<void>>(`${RECIPE_API_BASE}/${recipeId}/steps`, data)
+    console.log('📥 更新步骤响应:', response)
+    
+    // 处理包装格式的响应
+    if (response.data && typeof response.data === 'object') {
+      // 如果有 success 字段
+      if ('success' in response.data) {
+        if (!response.data.success) {
+          console.error('❌ 更新步骤失败 (success=false):', response.data.error)
+          throw new Error(response.data.error?.message || '更新配方步骤失败')
+        }
+        console.log('✅ 更新步骤成功')
+        return
+      }
+      
+      // 如果响应状态是 200 且没有 success 字段，视为成功
+      if (response.status === 200) {
+        console.log('✅ 更新步骤成功 (无包装格式)')
+        return
+      }
+    }
+    
+    console.error('❌ 更新步骤响应格式不正确:', response.data)
+    throw new Error('更新配方步骤失败：响应格式不正确')
+  } catch (error: any) {
+    console.error('❌ 更新步骤异常:', error)
+    throw error
+  }
+}
+
+/**
+ * 复制配方到其他组合 (v2.2 新增)
+ */
+export const copyRecipe = async (recipeId: string, data: CopyRecipeRequest): Promise<CopyRecipeResponse> => {
+  const response = await httpService.post<ApiResponse<CopyRecipeResponse>>(`${RECIPE_API_BASE}/${recipeId}/copy`, data)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '更新配方失败')
+    throw new Error(response.data.error?.message || '复制配方失败')
   }
   return response.data.data
 }
 
 /**
- * 删除配方
+ * 删除配方 (v2.2)
  */
 export const deleteRecipe = async (id: string): Promise<void> => {
   const response = await httpService.delete<ApiResponse<void>>(`${RECIPE_API_BASE}/${id}`)
@@ -108,110 +286,22 @@ export const deleteRecipe = async (id: string): Promise<void> => {
   }
 }
 
-// ==================== 配方步骤管理 ====================
-
 /**
- * 添加步骤
+ * 匹配配方 (v2.2 新增)
  */
-export const addStep = async (recipeId: string, data: AddStepRequest): Promise<void> => {
-  const response = await httpService.post<ApiResponse<void>>(`${RECIPE_API_BASE}/${recipeId}/steps`, data)
-  if (!response.data.success) {
-    throw new Error(response.data.error?.message || '添加步骤失败')
-  }
-}
-
-/**
- * 更新步骤
- */
-export const updateStep = async (stepId: string, data: UpdateStepRequest): Promise<void> => {
-  const response = await httpService.put<ApiResponse<void>>(`${RECIPE_API_BASE}/steps/${stepId}`, data)
-  if (!response.data.success) {
-    throw new Error(response.data.error?.message || '更新步骤失败')
-  }
-}
-
-/**
- * 删除步骤
- */
-export const deleteStep = async (stepId: string): Promise<void> => {
-  const response = await httpService.delete<ApiResponse<void>>(`${RECIPE_API_BASE}/steps/${stepId}`)
-  if (!response.data.success) {
-    throw new Error(response.data.error?.message || '删除步骤失败')
-  }
-}
-
-// ==================== 配方计算 ====================
-
-/**
- * 计算配方
- */
-export const calculateRecipe = async (data: CalculateRecipeRequest): Promise<CalculateRecipeResponse> => {
-  const response = await httpService.post<ApiResponse<CalculateRecipeResponse>>(`${RECIPE_API_BASE}/calculate`, data)
+export const matchRecipe = async (data: MatchRecipeRequest): Promise<MatchRecipeResponse> => {
+  const response = await httpService.post<ApiResponse<MatchRecipeResponse>>(`${RECIPE_API_BASE}/match`, data)
   if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '计算配方失败')
+    throw new Error(response.data.error?.message || '匹配配方失败')
   }
   return response.data.data
 }
 
-// ==================== 属性变体管理 ====================
+
+// ==================== 步骤类型管理 (v2.2) ====================
 
 /**
- * 创建属性变体
- */
-export const createVariant = async (recipeId: string, data: CreateVariantRequest): Promise<AttributeVariant> => {
-  const response = await httpService.post<ApiResponse<AttributeVariant>>(`${RECIPE_API_BASE}/${recipeId}/variants`, data)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '创建变体失败')
-  }
-  return response.data.data
-}
-
-/**
- * 更新属性变体
- */
-export const updateVariant = async (variantId: string, data: Partial<CreateVariantRequest>): Promise<AttributeVariant> => {
-  const response = await httpService.put<ApiResponse<AttributeVariant>>(`${RECIPE_API_BASE}/variants/${variantId}`, data)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '更新变体失败')
-  }
-  return response.data.data
-}
-
-/**
- * 删除属性变体
- */
-export const deleteVariant = async (variantId: string): Promise<void> => {
-  const response = await httpService.delete<ApiResponse<void>>(`${RECIPE_API_BASE}/variants/${variantId}`)
-  if (!response.data.success) {
-    throw new Error(response.data.error?.message || '删除变体失败')
-  }
-}
-
-/**
- * 添加步骤覆盖
- */
-export const addOverride = async (variantId: string, data: AddOverrideRequest): Promise<void> => {
-  const response = await httpService.post<ApiResponse<void>>(`${RECIPE_API_BASE}/variants/${variantId}/overrides`, data)
-  if (!response.data.success) {
-    throw new Error(response.data.error?.message || '添加步骤覆盖失败')
-  }
-}
-
-// ==================== 步骤类型管理 ====================
-
-/**
- * 创建步骤类型
- */
-export const createStepType = async (data: CreateStepTypeRequest): Promise<StepType> => {
-  const response = await httpService.post<ApiResponse<StepType>>(STEP_TYPE_API_BASE, data)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '创建步骤类型失败')
-  }
-  return response.data.data
-}
-
-/**
- * 获取步骤类型列表
+ * 获取步骤类型列表 (v2.2)
  */
 export const getStepTypes = async (): Promise<StepType[]> => {
   const response = await httpService.get<ApiResponse<StepType[]>>(STEP_TYPE_API_BASE)
@@ -222,7 +312,29 @@ export const getStepTypes = async (): Promise<StepType[]> => {
 }
 
 /**
- * 更新步骤类型
+ * 获取步骤类型详情 (v2.2)
+ */
+export const getStepTypeById = async (id: string): Promise<StepType> => {
+  const response = await httpService.get<ApiResponse<StepType>>(`${STEP_TYPE_API_BASE}/${id}`)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || '获取步骤类型详情失败')
+  }
+  return response.data.data
+}
+
+/**
+ * 创建步骤类型 (v2.2)
+ */
+export const createStepType = async (data: CreateStepTypeRequest): Promise<StepType> => {
+  const response = await httpService.post<ApiResponse<StepType>>(STEP_TYPE_API_BASE, data)
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.error?.message || '创建步骤类型失败')
+  }
+  return response.data.data
+}
+
+/**
+ * 更新步骤类型 (v2.2)
  */
 export const updateStepType = async (id: string, data: Partial<CreateStepTypeRequest>): Promise<StepType> => {
   const response = await httpService.put<ApiResponse<StepType>>(`${STEP_TYPE_API_BASE}/${id}`, data)
@@ -233,7 +345,7 @@ export const updateStepType = async (id: string, data: Partial<CreateStepTypeReq
 }
 
 /**
- * 删除步骤类型
+ * 删除步骤类型 (v2.2)
  */
 export const deleteStepType = async (id: string): Promise<void> => {
   const response = await httpService.delete<ApiResponse<void>>(`${STEP_TYPE_API_BASE}/${id}`)
@@ -242,15 +354,5 @@ export const deleteStepType = async (id: string): Promise<void> => {
   }
 }
 
-// ==================== 智能代码生成 ====================
 
-/**
- * 生成代码
- */
-export const generateCode = async (data: GenerateCodeRequest): Promise<GenerateCodeResponse[]> => {
-  const response = await httpService.post<ApiResponse<GenerateCodeResponse[]>>(`${RECIPE_API_BASE}/code/generate`, data)
-  if (!response.data.success || !response.data.data) {
-    throw new Error(response.data.error?.message || '生成代码失败')
-  }
-  return response.data.data
-}
+
